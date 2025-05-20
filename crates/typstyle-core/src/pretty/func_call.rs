@@ -51,8 +51,8 @@ impl<'a> PrettyPrinter<'a> {
         let mut doc = self.arena.nil();
         let has_parenthesized_args = has_parenthesized_args(args);
         if table::is_table(func_call) {
-            if let Some(cols) = table::is_formatable_table(func_call) {
-                doc += self.convert_table(ctx, func_call, cols);
+            if let Some(table) = self.try_convert_table(ctx, func_call) {
+                doc += table;
             } else if has_parenthesized_args {
                 doc += self.convert_parenthesized_args_as_list(ctx, args);
             }

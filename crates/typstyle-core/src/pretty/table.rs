@@ -3,7 +3,7 @@ use pretty::DocAllocator;
 use typst_syntax::{ast::*, SyntaxKind};
 
 use super::{
-    util::{func_name, indent_func_name},
+    util::{func_name, has_comment_children, indent_func_name},
     ArenaDoc, Context,
 };
 use crate::{
@@ -20,24 +20,51 @@ const BLACK_LIST: [&str; 6] = [
     "grid.hline",
 ];
 
-const HEADER_FOOTER: [&str; 4] = ["table.header", "table.footer", "grid.header", "grid.footer"];
+enum CellReflowMode {
+    Auto,
+    Never,
+}
+
+/*
+aligned
+需要处理：不参与的（free），
+如果没有blacklist, 那就
+*/
 
 impl<'a> PrettyPrinter<'a> {
-    pub(super) fn convert_table(
+    pub(super) fn try_convert_table(
         &'a self,
         ctx: Context,
         table: FuncCall<'a>,
-        columns: usize,
-    ) -> ArenaDoc<'a> {
+    ) -> Option<ArenaDoc<'a>> {
+        let cols = if is_table(table) && is_formattable_table(table) {
+            get_table_columns(table)
+        } else {
+            None
+        }?;
+        Some(self.convert_table(ctx, table, cols))
+    }
+
+    // only handle parenthesized args here
+    fn convert_table(&'a self, ctx: Context, table: FuncCall<'a>, columns: usize) -> ArenaDoc<'a> {
         let ctx = ctx.with_mode(Mode::CodeCont);
 
+        // 关于reorder: header/footer一定独占一行, 如果出现cell/vline/hline那么不会reflow
+        // 这里需要检查是否可reorder
+        /*
+        流程
+        - 收集rows. 来一个处理一个
+        - named单独占一行
+        - 如果遇到header, or spread, 单独成一行
+        - 如果有cell这种就不reflow，看到换行手动reflow
+        -
+         */
+
         let mut doc = self.arena.hardline();
-        for named in table.args().items().filter_map(|node| match node {
-            Arg::Named(named) => Some(named),
+        doc += (self.arena).concat(table.args().items().filter_map(|node| match node {
+            Arg::Named(named) => Some(self.convert_named(ctx, named) + "," + self.arena.hardline()),
             _ => None,
-        }) {
-            doc += self.convert_named(ctx, named) + "," + self.arena.hardline();
-        }
+        }));
         #[derive(Debug)]
         struct Row<'a> {
             cells: Vec<Arg<'a>>,
@@ -69,13 +96,11 @@ impl<'a> PrettyPrinter<'a> {
                         cells: Vec::with_capacity(columns),
                     };
                 }
-                if let Some(func_call) = arg.to_untyped().cast::<FuncCall>() {
-                    if HEADER_FOOTER.contains(&func_name(func_call).as_str()) {
-                        table.push(row);
-                        row = Row {
-                            cells: Vec::with_capacity(columns),
-                        };
-                    }
+                if is_header_or_footer(arg) {
+                    table.push(row);
+                    row = Row {
+                        cells: Vec::with_capacity(columns),
+                    };
                 }
             }
             if !row.cells.is_empty() {
@@ -109,26 +134,24 @@ impl<'a> PrettyPrinter<'a> {
 }
 
 pub fn is_table(node: FuncCall<'_>) -> bool {
-    indent_func_name(node) == Some("table") || indent_func_name(node) == Some("grid")
+    matches!(indent_func_name(node), Some("table") | Some("grid"))
 }
 
-fn is_formatable(node: FuncCall<'_>) -> bool {
+fn is_formattable_table(node: FuncCall<'_>) -> bool {
     // 1. no comments
-    // 2. no spread args
+    // 2. ~~no spread args~~
     // 3. no named args or named args first then unnamed args
     // 4. has at least one pos arg
-    // 5. no table/grid.vline/hline/cell
-    // 6. if table/grid.header/footer present, they should appear before/after any unnamed args
-    for node in node.args().to_untyped().children() {
-        if node.kind() == SyntaxKind::LineComment || node.kind() == SyntaxKind::BlockComment {
-            return false;
-        }
+    // 5. ~~no table/grid.vline/hline/cell~~
+    // 6. ~~if table/grid.header/footer present, they should appear before/after any unnamed args~~
+    if has_comment_children(node.args().to_untyped()) {
+        return false;
     }
-    let mut pos_arg_index = None;
+    let mut seen_pos_arg = false;
     for (i, node) in get_parenthesized_args(node.args()).enumerate() {
         match node {
             Arg::Pos(_) => {
-                pos_arg_index = Some(i);
+                seen_pos_arg = true;
                 if let Some(func_call) = node.to_untyped().cast::<FuncCall>() {
                     if BLACK_LIST.contains(&func_name(func_call).as_str()) {
                         return false;
@@ -136,17 +159,25 @@ fn is_formatable(node: FuncCall<'_>) -> bool {
                 }
             }
             Arg::Named(_) => {
-                if pos_arg_index.is_some() {
+                if seen_pos_arg {
                     return false;
                 }
             }
             Arg::Spread(_) => return false,
         }
     }
-    if pos_arg_index.is_none() {
+    if !seen_pos_arg {
         return false;
     }
     true
+}
+
+fn is_header_or_footer(arg: Arg) -> bool {
+    const HEADER_FOOTER: [&str; 4] = ["table.header", "table.footer", "grid.header", "grid.footer"];
+
+    arg.to_untyped()
+        .cast::<FuncCall>()
+        .is_some_and(|func_call| HEADER_FOOTER.contains(&func_name(func_call).as_str()))
 }
 
 fn get_table_columns(node: FuncCall<'_>) -> Option<usize> {
@@ -163,14 +194,4 @@ fn get_table_columns(node: FuncCall<'_>) -> Option<usize> {
         }
     }
     None
-}
-
-/// Returns the number of columns in the table if the table is formatable.
-/// Otherwise, returns None.
-pub(super) fn is_formatable_table(node: FuncCall<'_>) -> Option<usize> {
-    if is_table(node) && is_formatable(node) {
-        get_table_columns(node)
-    } else {
-        None
-    }
 }
