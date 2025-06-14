@@ -160,9 +160,12 @@ input_file: tests/fixtures/unit/code/args/compact-complex.typ
 )
 
 // Similar markup structures
-#f(text(red)[colored], text(blue)[colored], text(green)[colored], text(
-  purple,
-)[colored])
+#f(
+  text(red)[colored],
+  text(blue)[colored],
+  text(green)[colored],
+  text(purple)[colored],
+)
 
 // Similar nested function patterns
 #f(
@@ -185,41 +188,31 @@ input_file: tests/fixtures/unit/code/args/compact-complex.typ
 //==================================================
 
 // Nested arrays with mixed content
-#f(
-  ([outer], [[inner],([deepest],)]),
-  ([level1], [level2]),
-  ([shallow],),
+#f(([outer], [[inner],([deepest],)]), ([level1], [level2]), ([shallow],), (
+  [outer],
   (
-    [outer],
-    (
-      [inner1],
-      [inner2],
-      [
-        deep nested content
-        with multiple lines
-      ],
-    ),
+    [inner1],
+    [inner2],
+    [
+      deep nested content
+      with multiple lines
+    ],
   ),
-)
+))
 
 // Nested dictionaries
-#f(
-  (outer: (inner: (deepest: 1))),
-  (level1: (level2: 2)),
-  (shallow: 3),
-  (
-    complex: (
-      nested: (
-        dict: "value",
-        array: (1, 2, 3),
-      ),
-      blocks: [
-        Multiple line
-        content here
-      ],
+#f((outer: (inner: (deepest: 1))), (level1: (level2: 2)), (shallow: 3), (
+  complex: (
+    nested: (
+      dict: "value",
+      array: (1, 2, 3),
     ),
+    blocks: [
+      Multiple line
+      content here
+    ],
   ),
-)
+))
 
 // Mixed nesting with arrays, dicts, and blocks
 #f(
@@ -416,18 +409,13 @@ input_file: tests/fixtures/unit/code/args/compact-complex.typ
 //==================================================
 
 // Dictionary with multiple entries
-#f(
-  (a: 1),
-  (b: 2),
-  (c: 3),
-  (
-    very: "long",
-    dictionary: "with",
-    multiple: "entries",
-    that: "spans",
-    several: "lines",
-  ),
-)
+#f((a: 1), (b: 2), (c: 3), (
+  very: "long",
+  dictionary: "with",
+  multiple: "entries",
+  that: "spans",
+  several: "lines",
+))
 
 // Code blocks with loops
 #f([inline], emph[markup], text(red)[colored], {

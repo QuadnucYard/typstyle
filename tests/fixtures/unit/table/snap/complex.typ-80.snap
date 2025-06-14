@@ -209,7 +209,10 @@ input_file: tests/fixtures/unit/table/complex.typ
       [C], align(right)[D],
     )
   ],
-  table.cell(colspan: 2, fill: gradient.radial(blue, red))[
+  table.cell(
+    colspan: 2,
+    fill: gradient.radial(blue, red),
+  )[
     #align(center)[
       Fancy gradient cell with
       #stack(

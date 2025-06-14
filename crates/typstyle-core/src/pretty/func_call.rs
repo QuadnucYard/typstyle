@@ -13,7 +13,7 @@ use super::{
     util::{get_parenthesized_args, get_parenthesized_args_untyped, has_parenthesized_args},
     Context, Mode, PrettyPrinter,
 };
-use crate::{ext::StrExt, pretty::args};
+use crate::{cmplx::Complexity, ext::StrExt, pretty::args};
 
 impl<'a> PrettyPrinter<'a> {
     pub(super) fn convert_func_call(
@@ -248,36 +248,29 @@ fn is_ends_with_hashed_expr(mut children: std::slice::Iter<'_, SyntaxNode>) -> b
 ///    use compact folding (`FoldStyle::Compact`).
 /// 3. Otherwise, fall back to the default (`None`).
 fn suggest_fold_style_for_args(args: Args, count: usize) -> Option<FoldStyle> {
-    // Track if we’ve already seen an array/dict before the last arg.
-    let mut seen_array = false;
-    let mut seen_dict = false;
+    let mut max_complexity = 0;
 
     for (i, arg) in get_parenthesized_args(args).enumerate() {
         // Unwrap any nested parentheses to get the core expression.
-        let mut expr = args::unwrap_expr(arg);
+        let (mut expr, base_complexity) = match arg {
+            Arg::Pos(p) => (p, 0),
+            Arg::Named(n) => (n.expr(), 1),
+            Arg::Spread(s) => (s.expr(), 1),
+        };
         while let Expr::Parenthesized(inner) = expr {
             expr = inner.expr();
         }
 
-        // If this isn’t the last arg, record any arrays/dicts and bail out
-        // early if we hit another block.
         if i < count - 1 {
             if args::is_blocky(expr) {
                 break;
             }
-            match expr {
-                Expr::Array(array) if array.items().next().is_some() => seen_array = true,
-                Expr::Dict(dict) if dict.items().next().is_some() => seen_dict = true,
-                _ => (),
-            };
+            max_complexity = max_complexity.max(expr.complexity() + base_complexity);
             continue;
         }
 
-        // On the last argument: fold if it’s combinable and not a repeat
-        // of an earlier array/dict.
-        if args::is_combinable(expr)
-            && !(seen_array && matches!(expr, Expr::Array(_))
-                || seen_dict && matches!(expr, Expr::Dict(_)))
+        // On the last argument: fold if it’s combinable and complex enough.
+        if args::is_combinable(expr) && expr.complexity() >= 2 * (max_complexity + base_complexity)
         {
             return Some(FoldStyle::Compact);
         }

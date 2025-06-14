@@ -51,9 +51,13 @@ input_file: tests/fixtures/unit/code/args/compact-simpler.typ
   fill: (() => red)(),
 ))
 
-#f(1, "two", three: 4, (x: 5), text(
-  stroke: 1pt,
-)[])
+#f(
+  1,
+  "two",
+  three: 4,
+  (x: 5),
+  text(stroke: 1pt)[],
+)
 
 #f(
   [content],
