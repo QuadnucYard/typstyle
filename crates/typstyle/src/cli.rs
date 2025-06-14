@@ -49,11 +49,6 @@ impl CliArguments {
 
 #[derive(Subcommand)]
 pub enum Command {
-    /// (Deprecated) Format all files in-place in the given directory
-    FormatAll {
-        /// The directory to format. If not provided, the current directory is used
-        directory: Option<PathBuf>,
-    },
     #[cfg(feature = "completion")]
     /// Generate shell completions for the given shell to stdout
     #[command(hide = true)]
@@ -105,6 +100,10 @@ pub struct DebugArgs {
     /// Print the pretty document
     #[arg(short, long, default_value_t = false)]
     pub pretty_doc: bool,
+
+    /// Show elapsed time taken by the formatter
+    #[arg(long, default_value_t = false)]
+    pub timing: bool,
 }
 
 #[derive(Args)]
