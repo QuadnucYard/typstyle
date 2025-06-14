@@ -1,14 +1,14 @@
-import type React from "react";
+import type { JSXElement } from "solid-js";
 import type { ScreenSizeType } from "../types";
-import { Panel, Tab, Tabs } from "./base";
+import { Panel, Tabs } from "./base";
 
 interface MainLayoutProps {
   screenSize: ScreenSizeType;
-  optionsPanel: React.ReactNode;
-  sourcePanel: React.ReactNode;
-  formattedPanel: React.ReactNode;
-  astPanel: React.ReactNode;
-  irPanel: React.ReactNode;
+  optionsPanel: JSXElement;
+  sourcePanel: JSXElement;
+  formattedPanel: JSXElement;
+  astPanel: JSXElement;
+  irPanel: JSXElement;
 }
 
 export function MainLayout({
@@ -19,6 +19,25 @@ export function MainLayout({
   astPanel,
   irPanel,
 }: MainLayoutProps) {
+  const outputTabs = [
+    { id: "formatted", label: "Formatted", content: formattedPanel },
+    { id: "ast", label: "AST", content: astPanel },
+    { id: "ir", label: "Pretty IR", content: irPanel },
+  ];
+
+  const sourceTabs = [
+    { id: "options", label: "Options", content: optionsPanel },
+    { id: "source", label: "Source", content: sourcePanel },
+  ];
+
+  const allTabs = [
+    { id: "options", label: "Options", content: optionsPanel },
+    { id: "source", label: "Source", content: sourcePanel },
+    { id: "formatted", label: "Formatted", content: formattedPanel },
+    { id: "ast", label: "AST", content: astPanel },
+    { id: "ir", label: "Pretty IR", content: irPanel },
+  ];
+
   return (
     <div class="flex overflow-hidden min-h-0 h-full p-4 gap-2">
       {/* Wide Layout: 3 Columns */}
@@ -30,17 +49,7 @@ export function MainLayout({
           <Panel header="Source Code" class="flex-1">
             {sourcePanel}
           </Panel>
-          <Tabs defaultActiveTab="formatted" class="flex-1">
-            <Tab id="formatted" label="Formatted">
-              {formattedPanel}
-            </Tab>
-            <Tab id="ast" label="AST">
-              {astPanel}
-            </Tab>
-            <Tab id="ir" label="Pretty IR">
-              {irPanel}
-            </Tab>
-          </Tabs>
+          <Tabs defaultActiveTab="formatted" class="flex-1" tabs={outputTabs} />
         </>
       )}
 
@@ -48,48 +57,15 @@ export function MainLayout({
       {screenSize === "medium" && (
         <>
           <Panel class="flex-1">
-            <Tabs defaultActiveTab="source">
-              <Tab id="options" label="Options">
-                {optionsPanel}
-              </Tab>
-              <Tab id="source" label="Source">
-                {sourcePanel}
-              </Tab>
-            </Tabs>
+            <Tabs defaultActiveTab="source" tabs={sourceTabs} />
           </Panel>
-          <Tabs defaultActiveTab="formatted" class="flex-1">
-            <Tab id="formatted" label="Formatted">
-              {formattedPanel}
-            </Tab>
-            <Tab id="ast" label="AST">
-              {astPanel}
-            </Tab>
-            <Tab id="ir" label="Pretty IR">
-              {irPanel}
-            </Tab>
-          </Tabs>
+          <Tabs defaultActiveTab="formatted" class="flex-1" tabs={outputTabs} />
         </>
       )}
 
       {/* Thin Layout: 1 Column (Full Width) */}
       {screenSize === "thin" && (
-        <Tabs defaultActiveTab="source" class="flex-1">
-          <Tab id="options" label="Options">
-            {optionsPanel}
-          </Tab>
-          <Tab id="source" label="Source">
-            {sourcePanel}
-          </Tab>
-          <Tab id="formatted" label="Formatted">
-            {formattedPanel}
-          </Tab>
-          <Tab id="ast" label="AST">
-            {astPanel}
-          </Tab>
-          <Tab id="ir" label="Pretty IR">
-            {irPanel}
-          </Tab>
-        </Tabs>
+        <Tabs defaultActiveTab="source" class="flex-1" tabs={allTabs} />
       )}
     </div>
   );

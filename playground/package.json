@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@monaco-editor/loader": "^1.5.0",
     "@tailwindcss/vite": "^4.1.7",
     "monaco-editor": "^0.52.2",
     "tailwindcss": "^4.1.7",

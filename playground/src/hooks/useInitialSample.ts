@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import type { SampleDocumentKey } from "../constants";
 import {
   getFallbackContent,
@@ -14,7 +13,7 @@ export function useInitialSample({
   setSourceCode,
   sampleName = "basic",
 }: UseInitialSampleProps): void {
-  useEffect(() => {
+  createEffect(() => {
     const loadDefaultSample = async () => {
       try {
         const content = await getSampleFileContent(sampleName);
@@ -26,5 +25,5 @@ export function useInitialSample({
     };
 
     loadDefaultSample();
-  }, [sampleName, setSourceCode]);
+  }, [sampleName]);
 }

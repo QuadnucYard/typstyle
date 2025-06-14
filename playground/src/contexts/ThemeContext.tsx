@@ -1,6 +1,6 @@
-import { createSignal, createEffect, type JSXElement } from "solid-js";
+import { type JSXElement, createEffect, createSignal } from "solid-js";
 import type { ThemeType } from "../types";
-import { ThemeContext, type ThemeContextType } from "./theme-context"; // Assuming ThemeContextType is exported
+import { ThemeContext, type ThemeContextType } from "./theme-context";
 
 interface ThemeProviderProps {
   children: JSXElement;
@@ -17,7 +17,7 @@ export function ThemeProvider(props: ThemeProviderProps) {
           : "light";
       }
       return "light"; // Default for SSR or if localStorage is not available
-    })()
+    })(),
   );
 
   const toggleTheme = () => {

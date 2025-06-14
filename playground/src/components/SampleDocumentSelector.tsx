@@ -1,8 +1,8 @@
-import { createSignal, For, Show } from "solid-js";
+import { For, Show, createMemo, createSignal } from "solid-js";
 import { SAMPLE_DOCUMENTS, type SampleDocumentKey } from "../constants";
 import {
-  getSampleFileContent,
   getFallbackContent,
+  getSampleFileContent,
 } from "../utils/sampleLoader";
 
 interface SampleDocumentSelectorProps {
@@ -16,13 +16,20 @@ export function SampleDocumentSelector(props: SampleDocumentSelectorProps) {
   >("");
   const [error, setError] = createSignal<string | null>(null);
 
+  const sampleTooltip = createMemo(() => {
+    const sample = selectedSample();
+    return sample && sample in SAMPLE_DOCUMENTS
+      ? SAMPLE_DOCUMENTS[sample as SampleDocumentKey].description
+      : "📄 Choose a sample document to load";
+  });
+
   async function loadSampleDocument(key: SampleDocumentKey) {
     setError(null);
     try {
       const content = await getSampleFileContent(key);
       props.onSampleSelect(content);
       setSelectedSample(key);
-    } catch (err: any) {
+    } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       console.error("Error loading sample document:", err);
       setError(msg);
@@ -50,11 +57,7 @@ export function SampleDocumentSelector(props: SampleDocumentSelectorProps) {
           value={selectedSample()}
           onChange={handleSampleChange}
           class="w-48"
-          title={
-            selectedSample() && SAMPLE_DOCUMENTS[selectedSample()!]
-              ? SAMPLE_DOCUMENTS[selectedSample()!].description
-              : "📄 Choose a sample document to load"
-          }
+          title={sampleTooltip()}
         >
           <option value="" disabled>
             Select a sample...

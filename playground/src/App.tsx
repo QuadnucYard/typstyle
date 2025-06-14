@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   FormatOptionsContent,
   Header,
@@ -10,20 +9,22 @@ import { DEFAULT_FORMAT_OPTIONS } from "./constants";
 import { useInitialSample, useScreenSize, useTypstFormatter } from "./hooks";
 
 function App() {
-  const [sourceCode, setSourceCode] = useState("");
+  const [sourceCode, setSourceCode] = createSignal("");
   // Load initial sample document
   useInitialSample({ setSourceCode });
-  const [formatOptions, setFormatOptions] = useState(DEFAULT_FORMAT_OPTIONS);
+  const [formatOptions, setFormatOptions] = createSignal(
+    DEFAULT_FORMAT_OPTIONS
+  );
 
   // Custom hooks
   const screenSize = useScreenSize();
   const { formattedCode, astOutput, irOutput } = useTypstFormatter(
     sourceCode,
-    formatOptions,
+    formatOptions
   );
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
-      setSourceCode(value);
+      // setSourceCode(value);
     }
   };
 
@@ -33,47 +34,36 @@ function App() {
 
   const optionsPanel = (
     <FormatOptionsContent
-      formatOptions={formatOptions}
+      formatOptions={formatOptions()}
       setFormatOptions={setFormatOptions}
     />
   );
   const sourcePanel = (
     <SourceEditor
-      key="source-editor"
-      value={sourceCode}
+      value={sourceCode()}
       onChange={handleEditorChange}
-      lineLengthGuide={formatOptions.maxLineLength}
+      lineLengthGuide={formatOptions().maxLineLength}
     />
   );
+  createEffect(() => console.log(formattedCode()));
   const formattedPanel = (
     <OutputEditor
-      key="output-formatted"
       content={formattedCode}
       language="typst"
-      indentSize={formatOptions.indentSize}
-      lineLengthGuide={formatOptions.maxLineLength}
+      indentSize={formatOptions().indentSize}
+      lineLengthGuide={formatOptions().maxLineLength}
     />
   );
   const astPanel = (
-    <OutputEditor
-      key="output-ast"
-      content={astOutput}
-      language="json"
-      indentSize={4}
-    />
+    <OutputEditor content={astOutput} language="json" indentSize={4} />
   );
   const irPanel = (
-    <OutputEditor
-      key="output-ir"
-      content={irOutput}
-      language="python"
-      indentSize={4}
-    />
+    <OutputEditor content={irOutput} language="python" indentSize={4} />
   );
 
   return (
     <div
-      className="
+      class="
         h-screen flex flex-col
        bg-gradient-to-br from-koishi-green-50 via-koishi-green-100 to-koishi-green-200
        dark:from-koishi-purple-900 dark:via-koishi-purple-800 dark:to-koishi-purple-700
@@ -82,7 +72,7 @@ function App() {
       <Header onSampleSelect={handleSampleSelect} />
 
       <MainLayout
-        screenSize={screenSize}
+        screenSize={screenSize()}
         optionsPanel={optionsPanel}
         sourcePanel={sourcePanel}
         formattedPanel={formattedPanel}

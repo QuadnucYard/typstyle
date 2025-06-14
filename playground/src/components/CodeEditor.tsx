@@ -1,5 +1,6 @@
-import { MonacoEditor } from "solid-monaco";
+import type { Monaco } from "@monaco-editor/loader";
 import type { editor } from "monaco-editor";
+import { MonacoEditor } from "solid-monaco";
 import { useTheme } from "../contexts";
 import { getEditorTheme } from "../utils/monacoThemes";
 
@@ -25,77 +26,79 @@ export interface CodeEditorProps {
   rulers?: number[];
 }
 
-export function CodeEditor({
-  value,
-  onChange,
-  onMount,
-  indentSize,
-  language = "typst",
-  readOnly = false,
-  showLineNumbers = true,
-  enableFolding = true,
-  enableWordWrap = true,
-  enableMinimap = false,
-  rulers,
-}: CodeEditorProps) {
-  const { theme } = useTheme();
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-
-  const editorTheme = useMemo(() => getEditorTheme(theme), [theme]);
-
-  const applyIndentationSettings = useCallback(() => {
-    if (editorRef.current) {
-      const editor = editorRef.current;
-      const model = editor.getModel();
-
-      if (model) {
-        if (indentSize > 0) {
-          // Positive indentSize: use fixed indentation
-          editor.updateOptions({ detectIndentation: false });
-          model.updateOptions({
-            tabSize: indentSize,
-            insertSpaces: true, // Typically use spaces for fixed indentation
-          });
-        } else {
-          // indentSize is 0 or negative: use auto-detection
-          editor.updateOptions({ detectIndentation: true });
-          // When detectIndentation is true, Monaco handles tabSize and insertSpaces.
-        }
-      }
-    }
-  }, [indentSize]); // Dependency is now only indentSize
-
-  const handleEditorDidMount = useCallback(
-    (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => {
-      editorRef.current = editor;
-      applyIndentationSettings(); // Apply initial settings
-      onMount?.(editor, monaco);
+export function CodeEditor(_props: CodeEditorProps) {
+  const props = mergeProps(
+    {
+      language: "typst",
+      readOnly: false,
+      showLineNumbers: true,
+      enableFolding: true,
+      enableWordWrap: true,
+      enableMinimap: false,
     },
-    [onMount, applyIndentationSettings]
+    _props,
   );
+  const { theme } = useTheme();
+  let editorRef: editor.IStandaloneCodeEditor;
 
-  useEffect(() => applyIndentationSettings(), [applyIndentationSettings]);
+  const editorTheme = () => getEditorTheme(theme());
 
+  // const applyIndentationSettings = useCallback(() => {
+  //   if (editorRef.current) {
+  //     const editor = editorRef.current;
+  //     const model = editor.getModel();
+
+  //     if (model) {
+  //       if (indentSize > 0) {
+  //         // Positive indentSize: use fixed indentation
+  //         editor.updateOptions({ detectIndentation: false });
+  //         model.updateOptions({
+  //           tabSize: indentSize,
+  //           insertSpaces: true, // Typically use spaces for fixed indentation
+  //         });
+  //       } else {
+  //         // indentSize is 0 or negative: use auto-detection
+  //         editor.updateOptions({ detectIndentation: true });
+  //         // When detectIndentation is true, Monaco handles tabSize and insertSpaces.
+  //       }
+  //     }
+  //   }
+  // }, [indentSize]); // Dependency is now only indentSize
+
+  const updateEditorOptions = (
+    editor: editor.IStandaloneCodeEditor,
+    monaco: Monaco,
+  ) => {
+    // applyIndentationSettings(); // Apply initial settings
+  };
+
+  const handleEditorDidMount = (
+    monaco: Monaco,
+    editor: editor.IStandaloneCodeEditor,
+  ) => {
+    updateEditorOptions(editor, monaco);
+    console.log("Editor mounted", editor);
+  };
   const editorOptions: editor.IStandaloneEditorConstructionOptions = {
-    readOnly,
-    minimap: { enabled: enableMinimap },
+    readOnly: props.readOnly,
+    minimap: { enabled: props.enableMinimap },
     scrollBeyondLastLine: false,
     fontSize: 14,
     fontFamily: "Monaco, Menlo, Ubuntu Mono, monospace",
     automaticLayout: true,
     padding: { top: 8, bottom: 8 },
     // tabSize, detectIndentation, and insertSpaces are now handled by applyIndentationSettings
-    wordWrap: enableWordWrap ? "on" : "off",
-    lineNumbers: showLineNumbers ? "on" : "off",
-    folding: enableFolding,
-    renderLineHighlight: readOnly ? "none" : "gutter",
+    wordWrap: props.enableWordWrap ? "on" : "off",
+    lineNumbers: props.showLineNumbers ? "on" : "off",
+    folding: props.enableFolding,
+    renderLineHighlight: props.readOnly ? "none" : "gutter",
     smoothScrolling: true,
-    autoIndent: readOnly ? "none" : "full",
+    autoIndent: props.readOnly ? "none" : "full",
     scrollbar: {
       vertical: "auto",
       horizontal: "auto",
     },
-    ...(rulers && rulers.length > 0 && { rulers }),
+    rulers: props.rulers && props.rulers.length > 0 ? props.rulers : undefined,
   };
   return (
     <div
@@ -106,10 +109,11 @@ export function CodeEditor({
     `}
     >
       <MonacoEditor
-        language={language}
-        value={value}
-        theme={editorTheme}
-        onChange={onChange}
+        ref={editorRef}
+        language={props.language}
+        value={props.value}
+        theme={editorTheme()}
+        onChange={props.onChange}
         onMount={handleEditorDidMount}
         options={editorOptions}
       />

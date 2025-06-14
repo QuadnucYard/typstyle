@@ -6,15 +6,11 @@ export interface SourceEditorProps {
   lineLengthGuide?: number;
 }
 
-export function SourceEditor({
-  value,
-  onChange,
-  lineLengthGuide,
-}: SourceEditorProps) {
+export function SourceEditor(props: SourceEditorProps) {
   return (
     <CodeEditor
-      value={value}
-      onChange={onChange}
+      value={props.value}
+      onChange={props.onChange}
       indentSize={0}
       language="typst"
       readOnly={false}
@@ -22,7 +18,7 @@ export function SourceEditor({
       enableFolding={true}
       enableWordWrap={true}
       enableMinimap={false}
-      rulers={lineLengthGuide ? [lineLengthGuide] : []}
+      rulers={props.lineLengthGuide ? [props.lineLengthGuide] : []}
     />
   );
 }

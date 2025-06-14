@@ -1,30 +1,26 @@
+import type { Accessor } from "solid-js";
 import { CodeEditor } from "./CodeEditor";
 
 export interface OutputEditorProps {
-  content: string;
+  content: Accessor<string>;
   language?: string;
   indentSize?: number;
   lineLengthGuide?: number;
 }
 
-export function OutputEditor({
-  content,
-  language = "typst",
-  indentSize = 2,
-  lineLengthGuide,
-}: OutputEditorProps) {
+export function OutputEditor(props: OutputEditorProps) {
   return (
     <div class="h-full">
       <CodeEditor
-        value={content}
-        indentSize={indentSize}
-        language={language}
+        value={props.content()}
+        indentSize={props.indentSize ?? 2}
+        language={props.language}
         readOnly={true}
         showLineNumbers={false}
-        enableFolding={language === "json"}
+        enableFolding={props.language === "json"}
         enableWordWrap={false}
         enableMinimap={false}
-        rulers={lineLengthGuide ? [lineLengthGuide] : []}
+        rulers={props.lineLengthGuide ? [props.lineLengthGuide] : []}
       />
     </div>
   );

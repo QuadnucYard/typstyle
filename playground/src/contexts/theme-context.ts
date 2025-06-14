@@ -1,4 +1,4 @@
-import { createContext, type Accessor } from "solid-js";
+import { type Accessor, createContext } from "solid-js";
 import type { ThemeType } from "../types";
 
 export interface ThemeContextType {
@@ -7,5 +7,5 @@ export interface ThemeContextType {
 }
 
 export const ThemeContext = createContext<ThemeContextType | undefined>(
-  undefined
+  undefined,
 );

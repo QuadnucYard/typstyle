@@ -5,148 +5,129 @@ import {
   For,
   Show,
   type JSXElement,
-  children as childrenHelper,
 } from "solid-js";
 
-// Interface for the data structure a Tab component will produce
+/**
+ * Represents a single tab item with its metadata and content
+ */
 export interface TabItem {
   id: string;
   label: string;
-  content: JSXElement; // This is the original children of the Tab component
-}
-
-// Props for the Tab "data constructor" component
-export interface TabProps {
-  id: string;
-  label: string;
-  children: JSXElement; // This will become the 'content' of the TabItem
-}
-
-export interface TabsProps {
-  children?: JSXElement | JSXElement[]; // Expects results of Tab(...) calls
-  activeTab?: string; // Controlled active tab
-  onTabChange?: (tabId: string) => void;
-  defaultActiveTab?: string;
-  class?: string; // Main container class
-  tabClassName?: string; // Class for each tab button
-  contentClassName?: string; // Class for the content panel
+  content: JSXElement;
 }
 
 /**
- * Tab component - acts as a data descriptor.
- * It doesn't render directly but provides its props as an object
- * for the parent Tabs component to consume.
+ * Props for the Tab component
  */
-export function Tab(props: TabProps): TabItem {
-  return {
-    id: props.id,
-    label: props.label,
-    content: props.children,
-  };
+export interface TabProps {
+  id: string;
+  label: string;
+  children: JSXElement;
 }
 
-export function Tabs(props: TabsProps) {
-  // Extract TabItem objects from children
-  const resolvedChildren = childrenHelper(() => props.children);
+/**
+ * Props for the Tabs container component
+ */
+export interface TabsProps {
+  children?: JSXElement;
+  /** Callback when tab changes */
+  onTabChange?: (tabId: string) => void;
+  /** Default active tab for uncontrolled mode */
+  defaultActiveTab?: string;
+  /** CSS class for the main container */
+  class?: string;
+  /** CSS class for individual tab buttons */
+  tabClassName?: string;
+  /** CSS class for the content panel */
+  contentClassName?: string;
+  /** Tab definitions for simpler usage */
+  tabs?: TabItem[];
+}
 
-  const items = createMemo<TabItem[]>(() => {
-    const kids = resolvedChildren();
-    const collectedTabs: TabItem[] = [];
-    if (Array.isArray(kids)) {
-      kids.forEach((child) => {
-        // Check if the child is a TabItem-like object
-        if (
-          child &&
-          typeof child === "object" &&
-          "id" in child &&
-          "label" in child &&
-          "content" in child
-        ) {
-          collectedTabs.push(child as TabItem);
-        }
-      });
-    } else if (
-      kids &&
-      typeof kids === "object" &&
-      "id" in kids &&
-      "label" in kids &&
-      "content" in kids
-    ) {
-      // Handle single child case
-      collectedTabs.push(kids as TabItem);
-    }
-    return collectedTabs;
-  });
+/**
+ * Utility to combine CSS classes
+ */
+function combineClasses(...classes: (string | undefined)[]): string {
+  return classes.filter(Boolean).join(" ");
+}
+
+/**
+ * Tabs component - manages a collection of tabs with controlled/uncontrolled state
+ */
+export function Tabs(props: TabsProps) {
+  /**
+   * Extract tab items from provided tabs prop
+   */
+  const tabItems = () => {
+    return props.tabs || [];
+  };
+
+  /**
+   * Get the default active tab ID
+   */
+  const getDefaultActiveTab = () => {
+    return props.defaultActiveTab || tabItems()[0]?.id || "";
+  };
 
   // Internal state for uncontrolled mode
   const [internalActiveTab, setInternalActiveTab] = createSignal<string>(
-    props.defaultActiveTab || items()[0]?.id || "",
+    getDefaultActiveTab(),
   );
 
-  // Determine active tab (controlled or uncontrolled)
-  const activeTabId = createMemo<string>(() => {
-    if (props.activeTab !== undefined) {
-      return props.activeTab; // Controlled
-    }
-    return internalActiveTab(); // Uncontrolled
-  });
-
-  // Handle tab click
+  /**
+   * Determine the currently active tab (controlled or uncontrolled)
+   */
+  const activeTabId = () => internalActiveTab();
+  /**
+   * Handle tab change events
+   */
   const handleTabChange = (tabId: string) => {
-    if (props.onTabChange) {
-      props.onTabChange(tabId);
-    }
-    if (props.activeTab === undefined) {
-      // Only set internal state if uncontrolled
-      setInternalActiveTab(tabId);
-    }
+    props.onTabChange?.(tabId);
+    setInternalActiveTab(tabId);
   };
 
-  // Effect to update internal state if defaultActiveTab or items change (for uncontrolled mode)
   createEffect(() => {
-    if (props.activeTab === undefined) { // Uncontrolled
-      const currentItems = items();
-      const currentDefault = props.defaultActiveTab || currentItems[0]?.id || "";
-      if (internalActiveTab() !== currentDefault && (!currentItems.find(t => t.id === internalActiveTab()) || props.defaultActiveTab)) {
-         // If current active tab is not in items, or defaultActiveTab is explicitly set, reset
-        setInternalActiveTab(currentDefault);
-      } else if (!internalActiveTab() && currentDefault) {
-        // If no active tab is set, initialize with default
-        setInternalActiveTab(currentDefault);
-      }
+    const currentTabs = tabItems();
+    const currentDefault = getDefaultActiveTab();
+    const currentActive = internalActiveTab();
+
+    // Reset to default if current active tab is invalid
+    const isCurrentTabValid = currentTabs.some(
+      (tab) => tab.id === currentActive,
+    );
+
+    if (!isCurrentTabValid && currentDefault) {
+      setInternalActiveTab(currentDefault);
     }
   });
 
-  // Effect to sync internal active tab when external activeTab prop changes (for controlled mode)
-  // This might not be strictly necessary if activeTabId() correctly reflects external prop.
-  // Solid's derived signals usually handle this.
-  // createEffect(() => {
-  //   if (props.activeTab !== undefined) {
-  //     setInternalActiveTab(props.activeTab); // This could cause a loop if onTabChange also sets externalActiveTab
-  //   }
-  // });
-
-  const activeTabContent = createMemo(() => {
+  /**
+   * Get the content of the currently active tab
+   */
+  const activeTabContent = () => {
     const currentTabId = activeTabId();
-    return items().find((tab) => tab.id === currentTabId)?.content;
-  });
+    return tabItems().find((tab) => tab.id === currentTabId)?.content;
+  };
 
   return (
-    <div class={`tabs ${props.class || ""}`}>
-      {/* Tab Headers */}
+    <div class={combineClasses("tabs", props.class)}>
+      {/* Tab Navigation */}
       <div class="tabs-nav">
-        <For each={items()}>
+        <For each={tabItems()}>
           {(tab) => {
             const isActive = () => activeTabId() === tab.id;
             return (
               <button
                 type="button"
-                class={`tab ${isActive() ? "active" : ""} ${
-                  props.tabClassName || ""
-                }`.trim()}
+                class={combineClasses(
+                  "tab",
+                  isActive() ? "active" : "",
+                  props.tabClassName,
+                )}
                 onClick={() => handleTabChange(tab.id)}
                 aria-selected={isActive()}
                 role="tab"
+                tabindex={isActive() ? 0 : -1}
               >
                 {tab.label}
               </button>
@@ -154,11 +135,14 @@ export function Tabs(props: TabsProps) {
           }}
         </For>
       </div>
-
-      {/* Tab Content */}
+      <div>{activeTabId()}</div>
+      {/* Tab Content Panel */}
       <Show when={activeTabContent()} keyed>
         {(content) => (
-          <div class={`tabs-panel ${props.contentClassName || ""}`.trim()}>
+          <div
+            class={combineClasses("tabs-panel", props.contentClassName)}
+            role="tabpanel"
+          >
             {content}
           </div>
         )}

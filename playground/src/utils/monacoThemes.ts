@@ -1,4 +1,4 @@
-import { loader } from "@monaco-editor/react";
+import loader from "@monaco-editor/loader";
 import type { editor } from "monaco-editor";
 import type { ThemeType } from "../types";
 import { registerTypstLanguage } from "../typst-language";
@@ -15,11 +15,11 @@ export const initMonaco = async () => {
   registerTypstLanguage(monaco);
   monaco.editor.defineTheme(
     DEFAULT_LIGHT_THEME,
-    xcodeTheme.default as editor.IStandaloneThemeData,
+    xcodeTheme.default as editor.IStandaloneThemeData
   );
   monaco.editor.defineTheme(
     DEFAULT_DARK_THEME,
-    draculaTheme.default as editor.IStandaloneThemeData,
+    draculaTheme.default as editor.IStandaloneThemeData
   );
 };
 

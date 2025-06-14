@@ -1,4 +1,3 @@
-import { render } from "solid-js/web";
 import { ThemeProvider } from "./contexts"; // This now needs to be a SolidJS Context Provider
 import "./styles/index.css";
 import App from "./App"; // This now needs to be a SolidJS component
@@ -12,5 +11,5 @@ render(
       <App />
     </ThemeProvider>
   ),
-  document.getElementById("root")!
+  document.getElementById("root")!,
 );
