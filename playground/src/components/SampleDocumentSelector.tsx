@@ -1,70 +1,71 @@
-import { useState } from "react";
+import { createSignal, For, Show } from "solid-js";
 import { SAMPLE_DOCUMENTS, type SampleDocumentKey } from "../constants";
 import {
-  getFallbackContent,
   getSampleFileContent,
+  getFallbackContent,
 } from "../utils/sampleLoader";
 
 interface SampleDocumentSelectorProps {
   onSampleSelect: (content: string) => void;
-  className?: string;
+  class?: string;
 }
 
-export function SampleDocumentSelector({
-  onSampleSelect,
-  className = "",
-}: SampleDocumentSelectorProps) {
-  const [selectedSample, setSelectedSample] = useState<SampleDocumentKey | "">(
-    "",
-  );
-  const [error, setError] = useState<string | null>(null);
+export function SampleDocumentSelector(props: SampleDocumentSelectorProps) {
+  const [selectedSample, setSelectedSample] = createSignal<
+    SampleDocumentKey | ""
+  >("");
+  const [error, setError] = createSignal<string | null>(null);
 
-  const loadSampleDocument = async (sampleKey: SampleDocumentKey) => {
+  async function loadSampleDocument(key: SampleDocumentKey) {
     setError(null);
     try {
-      const content = await getSampleFileContent(sampleKey);
-      onSampleSelect(content);
-      setSelectedSample(sampleKey);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      const content = await getSampleFileContent(key);
+      props.onSampleSelect(content);
+      setSelectedSample(key);
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
       console.error("Error loading sample document:", err);
-      setError(errorMessage);
-      const fallback = getFallbackContent(sampleKey, errorMessage);
-      onSampleSelect(fallback);
+      setError(msg);
+      props.onSampleSelect(getFallbackContent(key, msg));
     }
-  };
+  }
 
-  const handleSampleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value as SampleDocumentKey | "";
+  function handleSampleChange(e: Event) {
+    const value = (e.target as HTMLSelectElement).value as
+      | SampleDocumentKey
+      | "";
     if (value && value in SAMPLE_DOCUMENTS) {
       loadSampleDocument(value);
     } else {
       setSelectedSample("");
       setError(null);
+      props.onSampleSelect("");
     }
-  };
+  }
 
   return (
-    <div className={className}>
-      <div className="flex items-center gap-2">
+    <div class={props.class || ""}>
+      <div class="flex items-center gap-2">
         <select
-          value={selectedSample}
+          value={selectedSample()}
           onChange={handleSampleChange}
-          className="w-48"
+          class="w-48"
           title={
-            selectedSample && selectedSample in SAMPLE_DOCUMENTS
-              ? SAMPLE_DOCUMENTS[selectedSample].description
+            selectedSample() && SAMPLE_DOCUMENTS[selectedSample()!]
+              ? SAMPLE_DOCUMENTS[selectedSample()!].description
               : "📄 Choose a sample document to load"
           }
         >
           <option value="" disabled>
             Select a sample...
           </option>
-          {Object.entries(SAMPLE_DOCUMENTS).map(([key, sample]) => (
-            <option key={key} value={key} title={sample.description}>
-              {sample.name}
-            </option>
-          ))}
+          <For each={Object.entries(SAMPLE_DOCUMENTS)}>
+            {([key, sample]) => (
+              <option value={key} title={sample.description}>
+                {sample.name}
+              </option>
+            )}
+          </For>
         </select>
 
         <button
@@ -72,20 +73,19 @@ export function SampleDocumentSelector({
           onClick={() => {
             setSelectedSample("");
             setError(null);
-            onSampleSelect("");
+            props.onSampleSelect("");
           }}
-          className="btn w-8 h-8 p-0"
+          class="btn w-8 h-8 p-0"
           title="Clear document and start fresh"
         >
           🗑️
         </button>
 
-        {/* Error message moved here, to the right of the button */}
-        {error && (
-          <div className="rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-500 dark:border-red-800 dark:bg-red-950/20">
-            ⚠️ {error}
+        <Show when={error()}>
+          <div class="rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-500 dark:border-red-800 dark:bg-red-950/20">
+            ⚠️ {error()}
           </div>
-        )}
+        </Show>
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ export function OutputEditor({
   lineLengthGuide,
 }: OutputEditorProps) {
   return (
-    <div className="h-full">
+    <div class="h-full">
       <CodeEditor
         value={content}
         indentSize={indentSize}

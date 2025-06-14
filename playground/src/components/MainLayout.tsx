@@ -20,17 +20,17 @@ export function MainLayout({
   irPanel,
 }: MainLayoutProps) {
   return (
-    <div className="flex overflow-hidden min-h-0 h-full p-4 gap-2">
+    <div class="flex overflow-hidden min-h-0 h-full p-4 gap-2">
       {/* Wide Layout: 3 Columns */}
       {screenSize === "wide" && (
         <>
-          <Panel header="Format Options" className="w-[240px] flex-none">
+          <Panel header="Format Options" class="w-[240px] flex-none">
             {optionsPanel}
           </Panel>
-          <Panel header="Source Code" className="flex-1">
+          <Panel header="Source Code" class="flex-1">
             {sourcePanel}
           </Panel>
-          <Tabs defaultActiveTab="formatted" className="flex-1">
+          <Tabs defaultActiveTab="formatted" class="flex-1">
             <Tab id="formatted" label="Formatted">
               {formattedPanel}
             </Tab>
@@ -47,7 +47,7 @@ export function MainLayout({
       {/* Medium Layout: 2 Columns (Equal 1:1) */}
       {screenSize === "medium" && (
         <>
-          <Panel className="flex-1">
+          <Panel class="flex-1">
             <Tabs defaultActiveTab="source">
               <Tab id="options" label="Options">
                 {optionsPanel}
@@ -57,7 +57,7 @@ export function MainLayout({
               </Tab>
             </Tabs>
           </Panel>
-          <Tabs defaultActiveTab="formatted" className="flex-1">
+          <Tabs defaultActiveTab="formatted" class="flex-1">
             <Tab id="formatted" label="Formatted">
               {formattedPanel}
             </Tab>
@@ -73,7 +73,7 @@ export function MainLayout({
 
       {/* Thin Layout: 1 Column (Full Width) */}
       {screenSize === "thin" && (
-        <Tabs defaultActiveTab="source" className="flex-1">
+        <Tabs defaultActiveTab="source" class="flex-1">
           <Tab id="options" label="Options">
             {optionsPanel}
           </Tab>

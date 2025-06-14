@@ -1,38 +1,46 @@
-import { useCallback, useEffect, useState } from "react";
+import { createSignal, createEffect, type JSXElement } from "solid-js";
 import type { ThemeType } from "../types";
-import { ThemeContext } from "./theme-context";
+import { ThemeContext, type ThemeContextType } from "./theme-context"; // Assuming ThemeContextType is exported
 
 interface ThemeProviderProps {
-  children: React.ReactNode;
+  children: JSXElement;
 }
 
-export function ThemeProvider({ children }: ThemeProviderProps) {
+export function ThemeProvider(props: ThemeProviderProps) {
   // Initialize theme with saved preference, defaulting to light
-  const [theme, setTheme] = useState<ThemeType>(() => {
-    const savedTheme = localStorage.getItem("theme") as ThemeType | null;
-    return savedTheme && (savedTheme === "light" || savedTheme === "dark")
-      ? savedTheme
-      : "light";
-  });
+  const [theme, setTheme] = createSignal<ThemeType>(
+    (() => {
+      if (typeof window !== "undefined") {
+        const savedTheme = localStorage.getItem("theme") as ThemeType | null;
+        return savedTheme && (savedTheme === "light" || savedTheme === "dark")
+          ? savedTheme
+          : "light";
+      }
+      return "light"; // Default for SSR or if localStorage is not available
+    })()
+  );
 
-  const toggleTheme = useCallback(() => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  }, []);
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+  };
 
   // Apply theme to document root and save to localStorage
-  useEffect(() => {
-    const root = document.documentElement;
+  createEffect(() => {
+    if (typeof window !== "undefined") {
+      const currentTheme = theme(); // Get current value of the signal
+      document.documentElement.setAttribute("data-theme", currentTheme);
+      localStorage.setItem("theme", currentTheme);
+    }
+  });
 
-    // Set data-theme attribute instead of class
-    root.setAttribute("data-theme", theme);
-
-    // Save preference
-    localStorage.setItem("theme", theme);
-  }, [theme]);
+  const contextValue: ThemeContextType = {
+    theme, // Pass the signal accessor directly
+    toggleTheme,
+  };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
+    <ThemeContext.Provider value={contextValue}>
+      {props.children}
     </ThemeContext.Provider>
   );
 }

@@ -16,7 +16,7 @@
     "playground",
     "editor",
     "typescript",
-    "react"
+    "solidjs"
   ],
   "author": "Typstyle Contributors",
   "license": "Apache-2.0",
@@ -31,24 +31,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@monaco-editor/react": "^4.7.0",
+    "solid-monaco": "^0.3.0",
     "monaco-themes": "^0.4.5",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
     "typstyle-wasm": "file:typstyle-wasm"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@tailwindcss/vite": "^4.1.7",
-    "@types/node": "^22.15.21",
-    "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
-    "@vitejs/plugin-react": "^4.4.1",
     "monaco-editor": "^0.52.2",
-    "sass": "^1.89.0",
     "tailwindcss": "^4.1.7",
     "typescript": "~5.8.3",
+    "unplugin-auto-import": "^19.3.0",
     "vite": "^6.3.5",
+    "vite-plugin-solid": "^2.11.6",
     "vite-plugin-top-level-await": "^1.5.0",
     "vite-plugin-wasm": "^3.4.1"
   }

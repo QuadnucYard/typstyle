@@ -1,7 +1,5 @@
-import MonacoEditor from "@monaco-editor/react";
-import type { Monaco } from "@monaco-editor/react";
+import { MonacoEditor } from "solid-monaco";
 import type { editor } from "monaco-editor";
-import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTheme } from "../contexts";
 import { getEditorTheme } from "../utils/monacoThemes";
 
@@ -16,7 +14,7 @@ import { getEditorTheme } from "../utils/monacoThemes";
 export interface CodeEditorProps {
   value: string;
   onChange?: (value: string | undefined) => void;
-  onMount?: (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => void;
+  onMount?: (monaco: Monaco, editor: editor.IStandaloneCodeEditor) => void;
   indentSize: number; // Positive for fixed indent, 0 or negative for auto-detect
   language?: string;
   readOnly?: boolean;
@@ -73,7 +71,7 @@ export function CodeEditor({
       applyIndentationSettings(); // Apply initial settings
       onMount?.(editor, monaco);
     },
-    [onMount, applyIndentationSettings],
+    [onMount, applyIndentationSettings]
   );
 
   useEffect(() => applyIndentationSettings(), [applyIndentationSettings]);
@@ -101,7 +99,7 @@ export function CodeEditor({
   };
   return (
     <div
-      className={`
+      class={`
         h-full flex-1 overflow-hidden flex flex-col relative
         bg-[rgba(232,245,232,0.6)] dark:bg-[rgba(42,31,74,0.6)]
         transition-all duration-300 ease-in-out

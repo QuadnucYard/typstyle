@@ -1,11 +1,11 @@
-import { createContext } from "react";
+import { createContext, type Accessor } from "solid-js";
 import type { ThemeType } from "../types";
 
 export interface ThemeContextType {
-  theme: ThemeType;
+  theme: Accessor<ThemeType>;
   toggleTheme: () => void;
 }
 
 export const ThemeContext = createContext<ThemeContextType | undefined>(
-  undefined,
+  undefined
 );

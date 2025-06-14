@@ -1,16 +1,16 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { ThemeProvider } from "./contexts";
+import { render } from "solid-js/web";
+import { ThemeProvider } from "./contexts"; // This now needs to be a SolidJS Context Provider
 import "./styles/index.css";
-import App from "./App";
+import App from "./App"; // This now needs to be a SolidJS component
 import { initMonaco } from "./utils/monacoThemes";
 
 await initMonaco();
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
+render(
+  () => (
     <ThemeProvider>
       <App />
     </ThemeProvider>
-  </StrictMode>,
+  ),
+  document.getElementById("root")!
 );

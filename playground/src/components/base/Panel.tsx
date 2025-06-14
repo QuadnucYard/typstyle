@@ -1,16 +1,16 @@
-import type { ReactNode } from "react";
+import type { JSXElement } from "solid-js";
 
 export interface PanelProps {
-  children: ReactNode;
+  children: JSXElement;
   header?: string;
-  className?: string;
+  class?: string;
 }
 
-export function Panel({ children, header, className = "" }: PanelProps) {
+export function Panel(props: PanelProps) {
   return (
-    <div className={`panel ${className}`}>
-      {header && <div className="panel-header">{header}</div>}
-      <div className="panel-content">{children}</div>
+    <div class={`panel ${props.class}`}>
+      {props.header && <div class="panel-header">{props.header}</div>}
+      <div class="panel-content">{props.children}</div>
     </div>
   );
 }
