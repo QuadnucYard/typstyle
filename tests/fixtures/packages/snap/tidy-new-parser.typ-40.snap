@@ -213,15 +213,15 @@ input_file: tests/fixtures/packages/tidy-new-parser.typ
   (description: "asd", types: none),
 )
 #assert.eq(
-  parse-description-and-types((
-    "->int",
-  )),
+  parse-description-and-types(
+    ("->int",),
+  ),
   (description: "", types: ("int",)),
 )
 #assert.eq(
-  parse-description-and-types((
-    " -> int",
-  )),
+  parse-description-and-types(
+    (" -> int",),
+  ),
   (description: "", types: ("int",)),
 )
 #assert.eq(

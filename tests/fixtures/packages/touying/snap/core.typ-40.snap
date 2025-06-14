@@ -1152,9 +1152,11 @@ input_file: tests/fixtures/packages/touying/core.typ
 ) = {
   touying-fn-wrapper(
     utils.alternatives-cases,
-    last-subslide: calc.max(..cases.map(
-      utils.last-required-subslide,
-    )),
+    last-subslide: calc.max(
+      ..cases.map(
+        utils.last-required-subslide,
+      ),
+    ),
     cases,
     fn,
     position: position,
@@ -2226,15 +2228,19 @@ input_file: tests/fixtures/packages/touying/core.typ
           repetitions <= index
             or not need-cover
         ) {
-          result.push(terms.item(
-            child.term,
-            cont,
-          ))
+          result.push(
+            terms.item(
+              child.term,
+              cont,
+            ),
+          )
         } else {
-          cover-arr.push(terms.item(
-            child.term,
-            cont,
-          ))
+          cover-arr.push(
+            terms.item(
+              child.term,
+              cont,
+            ),
+          )
         }
         repetitions = nextrepetitions
         last-subslide = calc.max(
@@ -2420,9 +2426,9 @@ input_file: tests/fixtures/packages/touying/core.typ
       ))
       cover-arr = ()
     }
-    result-arr.push(result.sum(
-      default: [],
-    ))
+    result-arr.push(
+      result.sum(default: []),
+    )
   }
   max-repetitions = calc.max(
     max-repetitions,
