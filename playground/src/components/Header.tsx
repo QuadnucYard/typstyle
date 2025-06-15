@@ -42,9 +42,9 @@ export function Header({ onSampleSelect }: HeaderProps) {
           type="button"
           onClick={toggleTheme}
           class="btn-icon size-8"
-          title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          title={`Switch to ${theme() === "light" ? "dark" : "light"} mode`}
         >
-          {theme === "light" ? <LightModeIcon /> : <DarkModeIcon />}
+          {theme() === "light" ? <LightModeIcon /> : <DarkModeIcon />}
         </button>
       </div>
     </div>

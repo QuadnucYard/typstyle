@@ -13,7 +13,6 @@ export function FormatOptionsContent(props: FormatOptionsContentProps) {
   };
   return (
     <div class="p-2 overflow-y-auto flex-1">
-      {/* Reset Button */}
       <div class="mb-3 pb-3 border-b border-[rgba(200, 230, 201, 0.9)] dark:border-[rgba(74, 63, 106, 0.9)]">
         <button type="button" onClick={handleReset} class="btn w-full">
           🔄 Reset to Defaults

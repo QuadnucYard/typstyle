@@ -9,6 +9,10 @@ import AutoImport from "unplugin-auto-import/vite";
 export default defineConfig({
   base: "/typstyle/playground/",
 
+  optimizeDeps: {
+    exclude: ["monaco-editor"],
+  },
+
   plugins: [
     solid(),
     tailwindcss(),
@@ -23,30 +27,13 @@ export default defineConfig({
 
   build: {
     rollupOptions: {
+      external: ["monaco-editor"],
       output: {
         manualChunks: (id): string | undefined => {
-          // Large packages get their own chunks
-          if (id.includes("monaco-editor")) {
-            return "monaco-editor";
-          }
-          if (id.includes("monaco-themes")) {
-            return "monaco-themes";
-          }
-          // if (id.includes("react-dom")) {
-          //   return "react-dom";
-          // }
-          // if (id.includes("react")) {
-          //   return "react";
-          // }
-
           // Group all application source code and public resources together
           if (id.includes("/src/")) {
             return "app";
           }
-          // NOTE: If we pack some scripts together, it may raise loading error in production.
-
-          // // Default chunk for everything else
-          // return "vendor";
         },
       },
     },

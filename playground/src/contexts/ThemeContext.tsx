@@ -7,7 +7,6 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider(props: ThemeProviderProps) {
-  // Initialize theme with saved preference, defaulting to light
   const [theme, setTheme] = createSignal<ThemeType>(
     (() => {
       if (typeof window !== "undefined") {

@@ -1,3 +1,4 @@
+import { createSignal } from "solid-js";
 import {
   FormatOptionsContent,
   Header,
@@ -10,56 +11,25 @@ import { useInitialSample, useScreenSize, useTypstFormatter } from "./hooks";
 
 function App() {
   const [sourceCode, setSourceCode] = createSignal("");
-  // Load initial sample document
   useInitialSample({ setSourceCode });
   const [formatOptions, setFormatOptions] = createSignal(
-    DEFAULT_FORMAT_OPTIONS
+    DEFAULT_FORMAT_OPTIONS,
   );
 
-  // Custom hooks
   const screenSize = useScreenSize();
   const { formattedCode, astOutput, irOutput } = useTypstFormatter(
     sourceCode,
-    formatOptions
+    formatOptions,
   );
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
-      // setSourceCode(value);
+      setSourceCode(value);
     }
   };
 
   const handleSampleSelect = (content: string) => {
     setSourceCode(content);
   };
-
-  const optionsPanel = (
-    <FormatOptionsContent
-      formatOptions={formatOptions()}
-      setFormatOptions={setFormatOptions}
-    />
-  );
-  const sourcePanel = (
-    <SourceEditor
-      value={sourceCode()}
-      onChange={handleEditorChange}
-      lineLengthGuide={formatOptions().maxLineLength}
-    />
-  );
-  createEffect(() => console.log(formattedCode()));
-  const formattedPanel = (
-    <OutputEditor
-      content={formattedCode}
-      language="typst"
-      indentSize={formatOptions().indentSize}
-      lineLengthGuide={formatOptions().maxLineLength}
-    />
-  );
-  const astPanel = (
-    <OutputEditor content={astOutput} language="json" indentSize={4} />
-  );
-  const irPanel = (
-    <OutputEditor content={irOutput} language="python" indentSize={4} />
-  );
 
   return (
     <div
@@ -73,11 +43,33 @@ function App() {
 
       <MainLayout
         screenSize={screenSize()}
-        optionsPanel={optionsPanel}
-        sourcePanel={sourcePanel}
-        formattedPanel={formattedPanel}
-        astPanel={astPanel}
-        irPanel={irPanel}
+        optionsPanel={
+          <FormatOptionsContent
+            formatOptions={formatOptions()}
+            setFormatOptions={setFormatOptions}
+          />
+        }
+        sourcePanel={
+          <SourceEditor
+            value={sourceCode()}
+            onChange={handleEditorChange}
+            lineLengthGuide={formatOptions().maxLineLength}
+          />
+        }
+        formattedPanel={
+          <OutputEditor
+            content={formattedCode()}
+            language="typst"
+            indentSize={formatOptions().indentSize}
+            lineLengthGuide={formatOptions().maxLineLength}
+          />
+        }
+        astPanel={
+          <OutputEditor content={astOutput()} language="json" indentSize={4} />
+        }
+        irPanel={
+          <OutputEditor content={irOutput()} language="python" indentSize={4} />
+        }
       />
     </div>
   );

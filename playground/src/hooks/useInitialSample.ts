@@ -25,5 +25,5 @@ export function useInitialSample({
     };
 
     loadDefaultSample();
-  }, [sampleName]);
+  });
 }

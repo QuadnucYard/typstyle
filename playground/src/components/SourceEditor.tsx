@@ -15,7 +15,6 @@ export function SourceEditor(props: SourceEditorProps) {
       language="typst"
       readOnly={false}
       showLineNumbers={true}
-      enableFolding={true}
       enableWordWrap={true}
       enableMinimap={false}
       rulers={props.lineLengthGuide ? [props.lineLengthGuide] : []}

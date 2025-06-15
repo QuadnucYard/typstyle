@@ -7,18 +7,11 @@ export function useTypstFormatter(
   formatOptions: Accessor<FormatOptions>,
 ) {
   const [formatterOutput] = createResource(
-    // Source function: This function's return value is tracked.
-    // If it changes, the fetcher function is re-run.
     () => ({
       source: sourceCode(),
       options: formatOptions(),
     }),
-    // Fetcher function: Performs the asynchronous formatting.
     async ({ source, options }) => {
-      // It's good practice to handle cases like empty source if typstyle requires it,
-      // though typstyle might handle it gracefully.
-      // For this example, we assume typstyle functions can process empty strings.
-
       const config: typstyle.Config = {
         max_width: options.maxLineLength,
         tab_spaces: options.indentSize,
@@ -35,10 +28,8 @@ export function useTypstFormatter(
 
         return { formatted, ast, ir };
       } catch (error) {
-        // Return a state that indicates an error, allowing UI to react.
-        // The original source is returned as formatted text in case of error.
         return {
-          formatted: source, // Fallback to original source on error
+          formatted: source,
           ast: `Error parsing AST: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -50,9 +41,6 @@ export function useTypstFormatter(
     },
   );
 
-  // Derived accessors for the formatted outputs.
-  // These will reactively update when the resource data changes.
-  // Provide fallbacks for initial loading state or if properties are missing.
   const formattedCode = () => formatterOutput()?.formatted ?? sourceCode();
   const astOutput = () => formatterOutput()?.ast ?? "";
   const irOutput = () => formatterOutput()?.ir ?? "";
