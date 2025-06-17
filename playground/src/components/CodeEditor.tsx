@@ -1,9 +1,10 @@
-import MonacoEditor from "@monaco-editor/react";
+// import MonacoEditor from "@monaco-editor/react";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTheme } from "../contexts";
 import { getEditorTheme } from "../utils/monacoThemes";
+import { MonacoCodeEditor } from "@react-monaco/core";
 
 /**
  * CodeEditor - A configurable Monaco Editor wrapper for the Typstyle Playground
@@ -32,7 +33,7 @@ export function CodeEditor({
   onChange,
   onMount,
   indentSize,
-  language = "typst",
+  // language = "typst",
   readOnly = false,
   showLineNumbers = true,
   enableFolding = true,
@@ -43,7 +44,7 @@ export function CodeEditor({
   const { theme } = useTheme();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
-  const editorTheme = useMemo(() => getEditorTheme(theme), [theme]);
+  // const editorTheme = useMemo(() => getEditorTheme(theme), [theme]);
 
   const applyIndentationSettings = useCallback(() => {
     if (editorRef.current) {
@@ -97,6 +98,7 @@ export function CodeEditor({
       vertical: "auto",
       horizontal: "auto",
     },
+    theme: "dracula",
     ...(rulers && rulers.length > 0 && { rulers }),
   };
   return (
@@ -107,12 +109,24 @@ export function CodeEditor({
         transition-all duration-300 ease-in-out
     `}
     >
-      <MonacoEditor
+      {/* <MonacoEditor
         language={language}
         value={value}
         theme={editorTheme}
         onChange={onChange}
         onMount={handleEditorDidMount}
+        options={editorOptions}
+      /> */}
+      <MonacoCodeEditor
+        debug
+        input={{ filename: "main.typ", source: value }}
+        onChangeInput={({ input }) => {
+          console.log("change", input);
+          onChange?.(input.source);
+        }}
+        onChangeModel={(params) => {
+          console.log("onChangeModel", params);
+        }}
         options={editorOptions}
       />
     </div>
