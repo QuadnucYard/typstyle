@@ -235,18 +235,16 @@ input_file: tests/fixtures/unit/code/args/compact-complex.typ
   (outer: (inner: (deepest: 1))),
   (level1: (level2: 2)),
   (shallow: 3),
-  (
-    complex: (
-      nested: (
-        dict: "value",
-        array: (1, 2, 3),
-      ),
-      blocks: [
-        Multiple line
-        content here
-      ],
+  (complex: (
+    nested: (
+      dict: "value",
+      array: (1, 2, 3),
     ),
-  ),
+    blocks: [
+      Multiple line
+      content here
+    ],
+  )),
 )
 
 // Mixed nesting with arrays, dicts, and blocks
@@ -341,13 +339,11 @@ input_file: tests/fixtures/unit/code/args/compact-complex.typ
     x
   },
   "light",
-  (
-    heavy: {
-      let data = (1, 2, 3)
-      let text = [Complex]
-      (result: text, data: data)
-    },
-  ),
+  (heavy: {
+    let data = (1, 2, 3)
+    let text = [Complex]
+    (result: text, data: data)
+  }),
   [simple],
   block[
     Another heavy item with

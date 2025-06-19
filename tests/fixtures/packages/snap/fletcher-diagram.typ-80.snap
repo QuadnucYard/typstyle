@@ -44,13 +44,11 @@ input_file: tests/fixtures/packages/fletcher-diagram.typ
     )
   }
 
-  (
-    flip: (
-      x: axes.at(0) in (rtl, ttb),
-      y: axes.at(1) in (rtl, ttb),
-      xy: flip,
-    ),
-  )
+  (flip: (
+    x: axes.at(0) in (rtl, ttb),
+    y: axes.at(1) in (rtl, ttb),
+    xy: flip,
+  ))
 }
 
 

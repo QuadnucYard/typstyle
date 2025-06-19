@@ -1952,10 +1952,7 @@ input_file: tests/fixtures/packages/tablex.typ
   gutter: none,
   pre-gutter: false,
 ) = {
-  let col-gutter = default-if-none(
-    default-if-none(gutter, (col: 0pt)).col,
-    0pt,
-  )
+  let col-gutter = default-if-none(default-if-none(gutter, (col: 0pt)).col, 0pt)
   end = default-if-none(end, columns.len())
 
   let col_range = range(start, calc.min(columns.len() + 1, end))
@@ -1981,10 +1978,7 @@ input_file: tests/fixtures/packages/tablex.typ
   gutter: none,
   pre-gutter: false,
 ) = {
-  let row-gutter = default-if-none(
-    default-if-none(gutter, (row: 0pt)).row,
-    0pt,
-  )
+  let row-gutter = default-if-none(default-if-none(gutter, (row: 0pt)).row, 0pt)
   end = default-if-none(end, rows.len())
 
   let row_range = range(start, calc.min(rows.len() + 1, end))

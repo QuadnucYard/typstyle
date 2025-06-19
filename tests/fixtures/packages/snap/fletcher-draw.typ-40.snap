@@ -558,18 +558,13 @@ input_file: tests/fixtures/packages/fletcher-draw.typ
   let phase = 0pt
   let stroke-with-phase(phase) = (
     stroke-to-dict(edge.stroke)
-      + (
-        dash: if type(edge.stroke.dash)
-          == dictionary {
-          (
-            array: edge
-              .stroke
-              .dash
-              .array,
-            phase: phase,
-          )
-        },
-      )
+      + (dash: if type(edge.stroke.dash)
+        == dictionary {
+        (
+          array: edge.stroke.dash.array,
+          phase: phase,
+        )
+      })
   )
 
   // draw each segment

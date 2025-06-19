@@ -103,8 +103,29 @@ impl<'a> PrettyPrinter<'a> {
                 .last()
                 .is_some_and(|child| child.kind() == SyntaxKind::Comma);
 
+        let fold_style = if is_only_one_and(array.items(), |&it| {
+            let expr = match it {
+                ArrayItem::Pos(expr) => expr,
+                ArrayItem::Spread(spread) => spread.expr(),
+            };
+            matches!(
+                expr,
+                Expr::Code(_)
+                    | Expr::Conditional(_)
+                    | Expr::While(_)
+                    | Expr::For(_)
+                    | Expr::Contextual(_)
+                    | Expr::Array(_)
+                    | Expr::Dict(_)
+            )
+        }) {
+            FoldStyle::Compact
+        } else {
+            self.get_fold_style(ctx, array)
+        };
+
         ListStylist::new(self)
-            .with_fold_style(self.get_fold_style(ctx, array))
+            .with_fold_style(fold_style)
             .process_list(ctx, array.to_untyped(), |ctx, node| {
                 self.convert_array_item(ctx, node)
             })
@@ -123,8 +144,30 @@ impl<'a> PrettyPrinter<'a> {
 
         let all_spread = dict.items().all(|item| matches!(item, DictItem::Spread(_)));
 
+        let fold_style = if is_only_one_and(dict.items(), |&it| {
+            let expr = match it {
+                DictItem::Named(named) => named.expr(),
+                DictItem::Keyed(keyed) =>keyed.expr(),
+                DictItem::Spread(spread) => spread.expr(),
+            };
+            matches!(
+                expr,
+                Expr::Code(_)
+                    | Expr::Conditional(_)
+                    | Expr::While(_)
+                    | Expr::For(_)
+                    | Expr::Contextual(_)
+                    | Expr::Array(_)
+                    | Expr::Dict(_)
+            )
+        }) {
+            FoldStyle::Compact
+        } else {
+            self.get_fold_style(ctx, dict)
+        };
+
         ListStylist::new(self)
-            .with_fold_style(self.get_fold_style(ctx, dict))
+            .with_fold_style(fold_style)
             .process_list(ctx, dict.to_untyped(), |ctx, node| {
                 self.convert_dict_item(ctx, node)
             })

@@ -26,9 +26,7 @@ input_file: tests/fixtures/unit/code/for-loop-line-break.typ
     pppppppppppppppppppppppppppppppppppppppppp,
     cccccccccccccccccccccccccccccccc,
     b,
-  ) in (
-    (111111, 111111111, 1),
-  ) {
+  ) in ((111111, 111111111, 1),) {
     "111111111111111111111111111111111"
   }
 }

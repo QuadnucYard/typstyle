@@ -431,13 +431,19 @@ impl<'a> ListStylist<'a> {
                 let last = docs.pop().unwrap();
                 let inner = if docs.is_empty() {
                     // only one item
-                    let last = if sty.add_trailing_sep_single {
-                        last + sep.clone()
+                    let compact = if sty.add_trailing_sep_single {
+                        last.clone() + sep.clone()
                     } else {
-                        last
+                        last.clone()
                     };
-                    let compact = last.clone();
-                    let loose = (arena.line_() + last + sep.clone()).nest(2) + arena.line_();
+                    let loose = {
+                        let inner = if sty.add_trailing_sep_single {
+                            last.clone() + sep.clone()
+                        } else {
+                            last + sep.clone().flat_alt(arena.nil())
+                        };
+                        (arena.line_() + inner).nest(2) + arena.line_()
+                    };
                     compact.union(loose)
                 } else {
                     // NOTE: we can't pad here, since this can appear in inline chains.
@@ -452,7 +458,7 @@ impl<'a> ListStylist<'a> {
                         + sep.clone()
                         + arena.line()
                         + last
-                        + sep.clone()
+                        + sep.clone().flat_alt(arena.nil())
                         + arena.line_())
                     .nest(2);
                     compact.union(loose)

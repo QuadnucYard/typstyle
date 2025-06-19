@@ -1,7 +1,6 @@
 ---
 source: tests/src/unit.rs
 input_file: tests/fixtures/unit/code/for-loop-line-break.typ
-snapshot_kind: text
 ---
 #import "@preview/cetz:0.2.2"
 
@@ -23,9 +22,7 @@ snapshot_kind: text
 
 
 #let 六面体 = {
-  for (pppppppppppppppppppppppppppppppppppppppppp, cccccccccccccccccccccccccccccccc, b) in (
-    (111111, 111111111, 1),
-  ) {
+  for (pppppppppppppppppppppppppppppppppppppppppp, cccccccccccccccccccccccccccccccc, b) in ((111111, 111111111, 1),) {
     "111111111111111111111111111111111"
   }
 }

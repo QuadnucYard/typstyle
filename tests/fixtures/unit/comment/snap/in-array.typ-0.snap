@@ -1,7 +1,6 @@
 ---
 source: tests/src/unit.rs
 input_file: tests/fixtures/unit/comment/in-array.typ
-snapshot_kind: text
 ---
 #(
   1,
