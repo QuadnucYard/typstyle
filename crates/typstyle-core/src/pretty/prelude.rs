@@ -1,3 +1,3 @@
-pub use prettyless::{Arena, DocAllocator, DocBuilder};
+pub use prettyless::{Arena, prelude::*};
 
 pub type ArenaDoc<'a> = DocBuilder<'a, Arena<'a>>;

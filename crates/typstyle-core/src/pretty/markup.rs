@@ -76,7 +76,7 @@ impl<'a> PrettyPrinter<'a> {
     }
 
     pub(super) fn convert_ref(&'a self, ctx: Context, reference: Ref<'a>) -> ArenaDoc<'a> {
-        let mut doc = self.arena.text("@") + self.arena.text(reference.target());
+        let mut doc = self.arena.pretty(("@", reference.target()));
         if let Some(supplement) = reference.supplement() {
             doc += self.convert_content_block(ctx, supplement);
         }

@@ -183,12 +183,14 @@ impl<'a> PrettyPrinter<'a> {
                             } else {
                                 0 // do not pad the last cell
                             };
-                            let doc = self.arena.spaces(padding_left)
-                                + self.arena.intersperse(
+                            let doc = self.arena.pretty((
+                                spaces(padding_left),
+                                self.arena.intersperse(
                                     lines.into_iter().map(|(line, _)| line),
-                                    self.arena.hardline(),
-                                )
-                                + self.arena.spaces(trailing_padding);
+                                    self.arena.hard_line(),
+                                ),
+                                spaces(trailing_padding),
+                            ));
                             (doc.nest(indent as isize), false)
                         }
                     };
