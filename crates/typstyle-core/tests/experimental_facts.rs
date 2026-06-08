@@ -100,6 +100,24 @@ fn partial_formatting_uses_experimental_facts() {
     );
 }
 
+#[test]
+fn table_like_hint_preserves_special_cell_layout() {
+    let facts = FormatFacts::new().with_function_fact(FunctionFact::by_name(
+        "my-table",
+        FunctionHint::table_like(Some(2)),
+    ));
+
+    let formatted = format_with_facts(
+        "#my-table(\n  [1], cell(colspan: 2)[2],\n  [3], [4]\n)",
+        facts,
+    );
+
+    assert_eq!(
+        formatted,
+        "#my-table(\n  [1], cell(colspan: 2)[2],\n  [3], [4],\n)\n"
+    );
+}
+
 fn find_func_call_by_callee<'a>(node: &'a SyntaxNode, callee: &str) -> FuncCall<'a> {
     find_func_call_by_callee_impl(node, callee)
         .unwrap_or_else(|| panic!("missing call to `{callee}`"))

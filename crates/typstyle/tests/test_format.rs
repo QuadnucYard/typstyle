@@ -81,6 +81,59 @@ columns = 2
 }
 
 #[test]
+fn test_typstyle_toml_qualified_function_hint() {
+    let mut space = Workspace::new();
+    space.write(
+        "typstyle.toml",
+        r#"
+[function-hints."pkg.my-table"]
+kind = "table"
+columns = 2
+"#,
+    );
+    space.write_tracked("a.typ", "#pkg.my-table([1], [2], [3], [4])");
+
+    typstyle_cmd_snapshot!(space.cli().args(["a.typ"]), @r"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    #pkg.my-table(
+      [1], [2],
+      [3], [4],
+    )
+
+    ----- stderr -----
+    ");
+
+    assert!(space.all_unmodified());
+}
+
+#[test]
+fn test_typstyle_toml_invalid_function_hint() {
+    let mut space = Workspace::new();
+    space.write(
+        "typstyle.toml",
+        r#"
+[function-hints.my-table]
+kind = "unknown"
+"#,
+    );
+    space.write_tracked("a.typ", "#my-table([1], [2], [3], [4])");
+
+    typstyle_cmd_snapshot!(space.cli().args(["a.typ"]), @r"
+    success: false
+    exit_code: 2
+    ----- stdout -----
+
+    ----- stderr -----
+      Cause: failed to parse [TEMP_PATH]/project/typstyle.toml
+      Cause: function-hints.my-table.kind must be `table` or `grid`
+    ");
+
+    assert!(space.all_unmodified());
+}
+
+#[test]
 fn test_one_erroneous() {
     let mut space = Workspace::new();
     space.write_tracked("a.typ", "#let");
