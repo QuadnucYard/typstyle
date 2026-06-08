@@ -4110,6 +4110,7 @@ dependencies = [
  "path-absolutize",
  "similar",
  "tempfile",
+ "toml",
  "typst-syntax",
  "typstyle-core",
  "vergen",

@@ -11,8 +11,9 @@ use std::{
 use anyhow::{Context, Result, bail};
 use itertools::Itertools;
 use log::{debug, error, info, warn};
+use toml::Value;
 use typst_syntax::Source;
-use typstyle_core::{Config, Typstyle, format_ast};
+use typstyle_core::{Config, FormatFacts, FunctionHint, Typstyle, format_ast};
 use walkdir::{DirEntry, WalkDir};
 
 use crate::{
@@ -57,7 +58,7 @@ impl StyleArgs {
 }
 
 pub fn format_stdin(args: &CliArguments) -> Result<ExitStatus> {
-    let typstyle = Typstyle::new(args.style.to_config());
+    let typstyle = make_typstyle(args, None)?;
 
     format_one(None, &typstyle, args).map(|res| match res {
         FormatResult::Formatted(_) if args.check || args.diff => ExitStatus::Failure,
@@ -81,10 +82,9 @@ pub fn format(args: &CliArguments) -> Result<ExitStatus> {
         return Ok(ExitStatus::Success);
     }
 
-    let typstyle = Typstyle::new(args.style.to_config());
-
     let start_time = Instant::now();
     for file in paths {
+        let typstyle = make_typstyle(args, Some(&file))?;
         let res = format_one(Some(&file), &typstyle, args).unwrap_or_else(|e| {
             error!("{e}");
             summary.error_count += 1;
@@ -139,6 +139,11 @@ pub fn format(args: &CliArguments) -> Result<ExitStatus> {
         FormatMode::Check | FormatMode::Diff if summary.format_count > 0 => ExitStatus::Failure,
         _ => ExitStatus::Success,
     })
+}
+
+fn make_typstyle(args: &CliArguments, input: Option<&Path>) -> Result<Typstyle> {
+    let facts = load_typstyle_toml_facts(input)?;
+    Ok(Typstyle::new(args.style.to_config()).with_experimental_facts(facts))
 }
 
 /// Formats a single `.typ` file or input from stdin.
@@ -257,6 +262,65 @@ fn get_input(input: Option<&Path>) -> Result<String> {
 fn write_back(path: &Path, content: &str) -> Result<()> {
     std::fs::write(path, content)
         .with_context(|| format!("failed to write to the file {}", path.display()))
+}
+
+fn load_typstyle_toml_facts(input: Option<&Path>) -> Result<FormatFacts> {
+    let Some(config_path) = find_typstyle_toml(input)? else {
+        return Ok(FormatFacts::default());
+    };
+    let content = std::fs::read_to_string(&config_path)
+        .with_context(|| format!("failed to read {}", config_path.display()))?;
+    parse_typstyle_toml_facts(&content)
+        .with_context(|| format!("failed to parse {}", config_path.display()))
+}
+
+fn find_typstyle_toml(input: Option<&Path>) -> Result<Option<PathBuf>> {
+    let start = match input.and_then(Path::parent) {
+        Some(parent) => parent.to_path_buf(),
+        None => std::env::current_dir().context("failed to get current directory")?,
+    };
+
+    for dir in start.ancestors() {
+        let candidate = dir.join("typstyle.toml");
+        if candidate.is_file() {
+            return Ok(Some(candidate));
+        }
+    }
+    Ok(None)
+}
+
+fn parse_typstyle_toml_facts(content: &str) -> Result<FormatFacts> {
+    let root = content.parse::<Value>()?;
+    let mut facts = FormatFacts::default();
+
+    let Some(function_hints) = root.get("function-hints").and_then(Value::as_table) else {
+        return Ok(facts);
+    };
+
+    for (callee_name, entry) in function_hints {
+        let kind = entry
+            .get("kind")
+            .and_then(Value::as_str)
+            .with_context(|| format!("function-hints.{callee_name}.kind must be a string"))?;
+        let columns = entry
+            .get("columns")
+            .and_then(Value::as_integer)
+            .map(|columns| {
+                usize::try_from(columns).with_context(|| {
+                    format!("function-hints.{callee_name}.columns must be non-negative")
+                })
+            })
+            .transpose()?;
+
+        let hint = match kind {
+            "table" => FunctionHint::table_like(columns),
+            "grid" => FunctionHint::grid_like(columns),
+            _ => bail!("function-hints.{callee_name}.kind must be `table` or `grid`"),
+        };
+        facts.add_function_name_hint(callee_name, hint);
+    }
+
+    Ok(facts)
 }
 
 fn resolve_typst_files(input: &[PathBuf]) -> Vec<PathBuf> {
