@@ -46,14 +46,21 @@ impl FormatMode {
 }
 
 impl StyleArgs {
-    pub fn to_config(&self) -> Config {
-        Config {
-            max_width: self.line_width,
-            tab_spaces: self.indent_width,
-            reorder_import_items: !self.no_reorder_import_items,
-            wrap_text: self.wrap_text,
-            ..Default::default()
+    pub fn apply_to_config(&self, mut config: Config) -> Config {
+        if let Some(line_width) = self.line_width {
+            config.max_width = line_width;
         }
+        if let Some(indent_width) = self.indent_width {
+            config.tab_spaces = indent_width;
+        }
+        if self.no_reorder_import_items {
+            config.reorder_import_items = false;
+        }
+        if self.wrap_text {
+            config.wrap_text = true;
+            config.collapse_markup_spaces = true;
+        }
+        config
     }
 }
 
@@ -142,8 +149,9 @@ pub fn format(args: &CliArguments) -> Result<ExitStatus> {
 }
 
 fn make_typstyle(args: &CliArguments, input: Option<&Path>) -> Result<Typstyle> {
-    let facts = load_typstyle_toml_facts(input)?;
-    Ok(Typstyle::new(args.style.to_config()).with_experimental_facts(facts))
+    let project_config = load_typstyle_toml_config(input)?;
+    let config = args.style.apply_to_config(project_config.config);
+    Ok(Typstyle::new(config).with_experimental_facts(project_config.facts))
 }
 
 /// Formats a single `.typ` file or input from stdin.
@@ -264,13 +272,19 @@ fn write_back(path: &Path, content: &str) -> Result<()> {
         .with_context(|| format!("failed to write to the file {}", path.display()))
 }
 
-fn load_typstyle_toml_facts(input: Option<&Path>) -> Result<FormatFacts> {
+#[derive(Debug, Clone, Default)]
+struct ProjectConfig {
+    config: Config,
+    facts: FormatFacts,
+}
+
+fn load_typstyle_toml_config(input: Option<&Path>) -> Result<ProjectConfig> {
     let Some(config_path) = find_typstyle_toml(input)? else {
-        return Ok(FormatFacts::default());
+        return Ok(ProjectConfig::default());
     };
     let content = std::fs::read_to_string(&config_path)
         .with_context(|| format!("failed to read {}", config_path.display()))?;
-    parse_typstyle_toml_facts(&content)
+    parse_typstyle_toml_config(&content)
         .with_context(|| format!("failed to parse {}", config_path.display()))
 }
 
@@ -289,8 +303,54 @@ fn find_typstyle_toml(input: Option<&Path>) -> Result<Option<PathBuf>> {
     Ok(None)
 }
 
-fn parse_typstyle_toml_facts(content: &str) -> Result<FormatFacts> {
+fn parse_typstyle_toml_config(content: &str) -> Result<ProjectConfig> {
     let root = content.parse::<Value>()?;
+    let config = parse_format_config(&root)?;
+    let facts = parse_format_facts(&root)?;
+
+    Ok(ProjectConfig { config, facts })
+}
+
+fn parse_format_config(root: &Value) -> Result<Config> {
+    let mut config = Config::default();
+
+    if let Some(max_width) = get_usize(
+        root,
+        &["max_width", "max-width", "line_width", "line-width"],
+    )? {
+        config.max_width = max_width;
+    }
+    if let Some(tab_spaces) = get_usize(
+        root,
+        &["tab_spaces", "tab-spaces", "indent_width", "indent-width"],
+    )? {
+        config.tab_spaces = tab_spaces;
+    }
+    if let Some(blank_lines_upper_bound) = get_usize(
+        root,
+        &["blank_lines_upper_bound", "blank-lines-upper-bound"],
+    )? {
+        config.blank_lines_upper_bound = blank_lines_upper_bound;
+    }
+    if let Some(collapse_markup_spaces) =
+        get_bool(root, &["collapse_markup_spaces", "collapse-markup-spaces"])?
+    {
+        config.collapse_markup_spaces = collapse_markup_spaces;
+    }
+    if let Some(reorder_import_items) =
+        get_bool(root, &["reorder_import_items", "reorder-import-items"])?
+    {
+        config.reorder_import_items = reorder_import_items;
+    }
+    if let Some(wrap_text) = get_bool(root, &["wrap_text", "wrap-text"])? {
+        config.wrap_text = wrap_text;
+        config.collapse_markup_spaces |= wrap_text;
+    }
+
+    Ok(config)
+}
+
+fn parse_format_facts(root: &Value) -> Result<FormatFacts> {
     let mut facts = FormatFacts::default();
 
     let Some(function_hints) = root.get("function-hints").and_then(Value::as_table) else {
@@ -321,6 +381,44 @@ fn parse_typstyle_toml_facts(content: &str) -> Result<FormatFacts> {
     }
 
     Ok(facts)
+}
+
+fn get_usize(root: &Value, keys: &[&str]) -> Result<Option<usize>> {
+    let Some((key, value)) = get_unique(root, keys)? else {
+        return Ok(None);
+    };
+    let Some(value) = value.as_integer() else {
+        bail!("{key} must be an integer");
+    };
+    Ok(Some(
+        usize::try_from(value).with_context(|| format!("{key} must be non-negative"))?,
+    ))
+}
+
+fn get_bool(root: &Value, keys: &[&str]) -> Result<Option<bool>> {
+    let Some((key, value)) = get_unique(root, keys)? else {
+        return Ok(None);
+    };
+    value
+        .as_bool()
+        .with_context(|| format!("{key} must be a boolean"))
+        .map(Some)
+}
+
+fn get_unique<'a, 'k>(
+    root: &'a Value,
+    keys: &'k [&'k str],
+) -> Result<Option<(&'k str, &'a Value)>> {
+    let mut found = keys
+        .iter()
+        .filter_map(|key| root.get(*key).map(|value| (*key, value)));
+    let first = found.next();
+    if let Some((first_key, _)) = first
+        && let Some((second_key, _)) = found.next()
+    {
+        bail!("{first_key} conflicts with {second_key}");
+    }
+    Ok(first)
 }
 
 fn resolve_typst_files(input: &[PathBuf]) -> Vec<PathBuf> {

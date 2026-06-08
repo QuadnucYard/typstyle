@@ -72,20 +72,13 @@ pub struct StyleArgs {
         long,
         visible_short_alias = 'c',
         visible_alias = "column",
-        default_value_t = 80,
         global = true
     )]
-    pub line_width: usize,
+    pub line_width: Option<usize>,
 
     /// Number of spaces per indentation level.
-    #[arg(
-        short = 't',
-        long,
-        visible_alias = "tab-width",
-        default_value_t = 2,
-        global = true
-    )]
-    pub indent_width: usize,
+    #[arg(short = 't', long, visible_alias = "tab-width", global = true)]
+    pub indent_width: Option<usize>,
 
     /// Disable alphabetical reordering of import items.
     #[arg(long, default_value_t = false, global = true)]

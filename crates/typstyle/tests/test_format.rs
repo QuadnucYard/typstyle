@@ -81,6 +81,83 @@ columns = 2
 }
 
 #[test]
+fn test_typstyle_toml_format_config_from_parent_dir() {
+    let mut space = Workspace::new();
+    space.write(
+        "typstyle.toml",
+        r#"
+indent_width = 4
+"#,
+    );
+    space.write_tracked(
+        "nested/a.typ",
+        "#let f(x) = {\nfor i in range(0, 5) {\n     x = x + i\n }\n}",
+    );
+
+    typstyle_cmd_snapshot!(space.cli().args(["nested/a.typ"]), @r"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    #let f(x) = {
+        for i in range(0, 5) {
+            x = x + i
+        }
+    }
+
+    ----- stderr -----
+    ");
+
+    assert!(space.all_unmodified());
+}
+
+#[test]
+fn test_typstyle_toml_format_config_for_stdin() {
+    let space = Workspace::new();
+    space.write(
+        "typstyle.toml",
+        r#"
+wrap_text = true
+max_width = 20
+"#,
+    );
+    let stdin = "lorem  ipsum   dolor sit amet, consectetur   adipiscing elit.";
+
+    typstyle_cmd_snapshot!(space.cli().pass_stdin(stdin), @r"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    lorem ipsum dolor
+    sit amet,
+    consectetur
+    adipiscing elit.
+
+    ----- stderr -----
+    ");
+}
+
+#[test]
+fn test_cli_overrides_typstyle_toml_format_config() {
+    let space = Workspace::new();
+    space.write(
+        "typstyle.toml",
+        r#"
+wrap_text = true
+max_width = 20
+"#,
+    );
+    let stdin = "lorem  ipsum   dolor sit amet, consectetur   adipiscing elit.";
+
+    typstyle_cmd_snapshot!(space.cli().args(["--line-width=80"]).pass_stdin(stdin), @r"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    lorem ipsum dolor sit amet, consectetur adipiscing elit.
+
+    ----- stderr -----
+    ");
+}
+
+#[test]
 fn test_typstyle_toml_qualified_function_hint() {
     let mut space = Workspace::new();
     space.write(
@@ -128,6 +205,30 @@ kind = "unknown"
     ----- stderr -----
       Cause: failed to parse [TEMP_PATH]/project/typstyle.toml
       Cause: function-hints.my-table.kind must be `table` or `grid`
+    ");
+
+    assert!(space.all_unmodified());
+}
+
+#[test]
+fn test_typstyle_toml_invalid_format_config() {
+    let mut space = Workspace::new();
+    space.write(
+        "typstyle.toml",
+        r#"
+max_width = "wide"
+"#,
+    );
+    space.write_tracked("a.typ", "#let a  =  0");
+
+    typstyle_cmd_snapshot!(space.cli().args(["a.typ"]), @r"
+    success: false
+    exit_code: 2
+    ----- stdout -----
+
+    ----- stderr -----
+      Cause: failed to parse [TEMP_PATH]/project/typstyle.toml
+      Cause: max_width must be an integer
     ");
 
     assert!(space.all_unmodified());
