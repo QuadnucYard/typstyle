@@ -11,7 +11,6 @@ use super::{
     },
     prelude::*,
     style::FoldStyle,
-    table,
 };
 use crate::{ext::StrExt, pretty::args};
 
@@ -51,8 +50,8 @@ impl<'a> PrettyPrinter<'a> {
         func_call: FuncCall<'a>,
         paren_nodes: &'a [SyntaxNode],
     ) -> ArenaDoc<'a> {
-        if table::is_table(func_call) {
-            if let Some(table) = self.try_convert_table(ctx, func_call, paren_nodes) {
+        if let Some(table_hint) = self.table_hint(func_call) {
+            if let Some(table) = self.try_convert_table(ctx, func_call, paren_nodes, table_hint) {
                 table
             } else {
                 self.convert_parenthesized_args_as_list(ctx, paren_nodes)

@@ -1,5 +1,6 @@
 pub mod attr;
 pub mod ext;
+pub mod facts;
 pub mod liteval;
 pub mod partial;
 pub mod pretty;
@@ -9,6 +10,7 @@ mod utils;
 
 pub use attr::AttrStore;
 pub use config::Config;
+pub use facts::{FormatFacts, FunctionFact, FunctionHint, FunctionQuery, TableLikeHint};
 use pretty::{PrettyPrinter, prelude::*};
 use thiserror::Error;
 use typst_syntax::{Source, SyntaxNode};
@@ -27,12 +29,25 @@ pub enum Error {
 #[derive(Debug, Clone, Default)]
 pub struct Typstyle {
     config: Config,
+    experimental_facts: FormatFacts,
 }
 
 impl Typstyle {
     /// Creates a new `Typstyle` with the given style configuration.
     pub fn new(config: Config) -> Self {
-        Self { config }
+        Self {
+            config,
+            experimental_facts: FormatFacts::default(),
+        }
+    }
+
+    /// Creates a new `Typstyle` with experimental semantic facts.
+    ///
+    /// This API is intended for LSP integrations and advanced callers. The facts are source-specific
+    /// hints such as "this function should be formatted like a table".
+    pub fn with_experimental_facts(mut self, facts: FormatFacts) -> Self {
+        self.experimental_facts = facts;
+        self
     }
 
     /// Prepares a text string for formatting.
@@ -43,7 +58,7 @@ impl Typstyle {
 
     /// Prepares a source for formatting.
     pub fn format_source(&self, source: Source) -> Formatter<'_> {
-        Formatter::new(self.config.clone(), source)
+        Formatter::new(self.config.clone(), self.experimental_facts.clone(), source)
     }
 }
 
@@ -54,9 +69,9 @@ pub struct Formatter<'a> {
 }
 
 impl<'a> Formatter<'a> {
-    fn new(config: Config, source: Source) -> Self {
+    fn new(config: Config, facts: FormatFacts, source: Source) -> Self {
         let attr_store = AttrStore::new(source.root());
-        let printer = PrettyPrinter::new(config, attr_store);
+        let printer = PrettyPrinter::new(config, attr_store, facts);
         Self { source, printer }
     }
 

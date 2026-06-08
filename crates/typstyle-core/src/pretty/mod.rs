@@ -24,25 +24,31 @@ use prelude::*;
 use style::{FoldStyle, is_multiline_flavored};
 use typst_syntax::{SyntaxNode, ast::*};
 
-use crate::{AttrStore, Config, Error, ext::StrExt};
+use crate::{AttrStore, Config, Error, FormatFacts, ext::StrExt};
 
 pub struct PrettyPrinter<'a> {
     config: Config,
     attr_store: AttrStore,
+    facts: FormatFacts,
     arena: Arena<'a>,
 }
 
 impl<'a> PrettyPrinter<'a> {
-    pub fn new(config: Config, attr_store: AttrStore) -> Self {
+    pub fn new(config: Config, attr_store: AttrStore, facts: FormatFacts) -> Self {
         Self {
             config,
             attr_store,
+            facts,
             arena: Arena::new(),
         }
     }
 
     pub fn config(&self) -> &Config {
         &self.config
+    }
+
+    pub fn facts(&self) -> &FormatFacts {
+        &self.facts
     }
 
     fn get_fold_style(&self, ctx: Context, node: impl AstNode<'a>) -> FoldStyle {

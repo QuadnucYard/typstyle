@@ -1,8 +1,12 @@
 use typst_syntax::{SyntaxKind, SyntaxNode, ast::*};
 
-use super::{Context, prelude::*, util::func_name};
+use super::{
+    Context,
+    prelude::*,
+    util::{expr_path, func_name},
+};
 use crate::{
-    PrettyPrinter,
+    FunctionQuery, PrettyPrinter, TableLikeHint,
     ext::StrExt,
     pretty::{Mode, layout::table::TableCollector},
 };
@@ -13,10 +17,11 @@ impl<'a> PrettyPrinter<'a> {
         ctx: Context,
         table: FuncCall<'a>,
         paren_nodes: &'a [SyntaxNode],
+        table_hint: TableLikeHint,
     ) -> Option<ArenaDoc<'a>> {
         // NOTE: args are not empty here
-        let columns = if is_table(table) && is_table_formattable(table, paren_nodes) {
-            get_table_columns(table)
+        let columns = if is_table_formattable(table, paren_nodes) {
+            get_table_columns(table, table_hint)
         } else {
             None
         }?;
@@ -77,9 +82,22 @@ impl<'a> PrettyPrinter<'a> {
         let doc = collector.collect();
         self.block_indent(doc).group().parens()
     }
+
+    pub(super) fn table_hint(&self, func_call: FuncCall<'_>) -> Option<TableLikeHint> {
+        let callee = func_call.callee();
+        let callee_path = expr_path(callee);
+        let hint = self.facts().function_hint(FunctionQuery {
+            callee_span: Some(callee.to_untyped().span()),
+            callee_name: func_name(func_call),
+            callee_path: callee_path.as_deref(),
+        });
+
+        hint.map(|hint| hint.table_like_hint())
+            .or_else(|| is_builtin_table(func_call).then_some(TableLikeHint { columns: None }))
+    }
 }
 
-pub fn is_table(func_call: FuncCall) -> bool {
+fn is_builtin_table(func_call: FuncCall) -> bool {
     matches!(func_name(func_call), Some("table") | Some("grid"))
 }
 
@@ -99,7 +117,7 @@ fn is_table_formattable(func_call: FuncCall, paren_nodes: &[SyntaxNode]) -> bool
         .any(|it| matches!(it.cast::<Arg>(), Some(Arg::Pos(_))))
 }
 
-fn get_table_columns(func_call: FuncCall) -> Option<usize> {
+fn get_table_columns(func_call: FuncCall, table_hint: TableLikeHint) -> Option<usize> {
     use crate::liteval::{Liteval, Value};
 
     let Some(columns_expr) = func_call.args().items().find_map(|node| {
@@ -111,9 +129,9 @@ fn get_table_columns(func_call: FuncCall) -> Option<usize> {
         None
     }) else {
         return if (func_call.args().items()).any(|arg| matches!(arg, Arg::Spread(_))) {
-            None // the columns may be provided in spread args.
+            table_hint.columns // the columns may be provided in spread args.
         } else {
-            Some(1) // if not `columns` is provided, regard as 1.
+            table_hint.columns.or(Some(1)) // if no `columns` is provided, regard as 1.
         };
     };
     match columns_expr.liteval() {

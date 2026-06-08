@@ -36,3 +36,14 @@ pub(super) fn func_name(node: FuncCall<'_>) -> Option<&str> {
         _ => None,
     }
 }
+
+pub(super) fn expr_path(expr: Expr<'_>) -> Option<String> {
+    match expr {
+        Expr::Ident(ident) => Some(ident.as_str().to_string()),
+        Expr::FieldAccess(field_access) => {
+            let target = expr_path(field_access.target())?;
+            Some(format!("{target}.{}", field_access.field().as_str()))
+        }
+        _ => None,
+    }
+}

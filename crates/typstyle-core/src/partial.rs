@@ -59,7 +59,8 @@ impl Typstyle {
         };
 
         let attrs = AttrStore::new(&node); // Here we only compute the attributes of that subtree.
-        let printer = PrettyPrinter::new(self.config.clone(), attrs);
+        let printer =
+            PrettyPrinter::new(self.config.clone(), attrs, self.experimental_facts.clone());
         let doc = printer.try_convert_with_mode(&node, mode)?;
 
         // Infer indent from context.
@@ -96,7 +97,8 @@ impl Typstyle {
         };
 
         let attrs = AttrStore::new(&node);
-        let printer = PrettyPrinter::new(self.config.clone(), attrs);
+        let printer =
+            PrettyPrinter::new(self.config.clone(), attrs, self.experimental_facts.clone());
         let doc = printer.try_convert_with_mode(&node, mode)?;
 
         let ir = indent_4_to_2(&format!("{doc:#?}"));
