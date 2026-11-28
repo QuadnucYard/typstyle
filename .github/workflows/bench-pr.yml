@@ -1,7 +1,7 @@
 name: Benchmark for PR
 # Base and PR benchmarks run serially on one runner with cached builds.
 # Base benchmarks use the upstream repository to ensure base revision exists.
-# PR benchmarks use the fork repository for the head revision.
+# PR benchmarks use the merge revision built by CI.
 # Fresh measurements are compared directly on the same runner.
 
 permissions:
@@ -19,6 +19,7 @@ on:
       - "tests/fixtures/**/*.typ"
       - ".cargo/config*"
       - ".github/workflows/bench-pr.yml"
+      - ".github/workflows/build-binaries.yml"
       - ".github/scripts/*benchmark*.nu"
   workflow_dispatch:
     inputs:
@@ -41,21 +42,19 @@ jobs:
         uses: fkirc/skip-duplicate-actions@v5
         with:
           cancel_others: "true"
-          paths: '["crates/typstyle-core/**", "crates/typstyle/**", "Cargo.toml", "Cargo.lock", "tests/fixtures/**/*.typ", ".cargo/config*", ".github/workflows/bench-pr.yml", ".github/scripts/*benchmark*.nu"]'
+          paths: '["crates/typstyle-core/**", "crates/typstyle/**", "Cargo.toml", "Cargo.lock", "tests/fixtures/**/*.typ", ".cargo/config*", ".github/workflows/bench-pr.yml", ".github/workflows/build-binaries.yml", ".github/scripts/*benchmark*.nu"]'
           paths_ignore: '["**/README.md"]'
           do_not_skip: '["workflow_dispatch"]'
 
   benchmark:
     name: Benchmark base and PR
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     needs: pre_job
     if: needs.pre_job.outputs.should_skip != 'true'
     env:
       BENCHMARK_RESULTS: ${{ github.workspace }}/benchmark-results
       CRITERION_HOME: ${{ github.workspace }}/benchmark-results/criterion
-      # Match cargo-bloat's strip override to reuse benchmark dependencies.
-      CARGO_PROFILE_RELEASE_STRIP: "false"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -74,8 +73,8 @@ jobs:
       - name: Checkout benchmark source
         uses: actions/checkout@v4
         with:
-          repository: ${{ steps.revisions.outputs.head_repository }}
-          ref: ${{ steps.revisions.outputs.head_sha }}
+          repository: ${{ steps.revisions.outputs.base_repository }}
+          ref: ${{ steps.revisions.outputs.pr_sha }}
           path: benchmark-workspace
           # The helper fetches the base commit using the job's read-only token.
           persist-credentials: true
@@ -85,7 +84,7 @@ jobs:
       - name: Install benchmark tools
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-bloat,critcmp
+          tool: critcmp
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -93,6 +92,11 @@ jobs:
 
       - name: Run base then PR
         run: nu .github/scripts/benchmark-pair.nu run
+
+      - name: Download release sizes from CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: nu .github/scripts/benchmark-pair.nu sizes
 
       - name: Generate comparison results
         shell: nu {0}

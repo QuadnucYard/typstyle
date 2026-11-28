@@ -2,6 +2,10 @@ name: Build Binaries
 
 on:
   workflow_call:
+    inputs:
+      report-size:
+        type: boolean
+        default: false
   workflow_dispatch:
 
 permissions:
@@ -77,9 +81,20 @@ jobs:
           sudo apt-get install gcc-arm-linux-gnueabihf
 
       - name: Build typstyle binary
+        if: ${{ !inputs.report-size || matrix.rust-target != 'x86_64-unknown-linux-gnu' }}
         shell: pwsh
         run: |
           cargo build --profile=ci --target ${{ matrix.rust-target }}
+      - name: Install cargo-bloat for size reporting
+        if: inputs.report-size && matrix.rust-target == 'x86_64-unknown-linux-gnu'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-bloat
+      - name: Build Linux x64 binary and collect code sizes
+        if: inputs.report-size && matrix.rust-target == 'x86_64-unknown-linux-gnu'
+        run: |
+          cargo bloat --locked --profile ci --target x86_64-unknown-linux-gnu \
+            -p typstyle --bin typstyle --crates --message-format json > cargo-bloat.json
       - name: Rename debug symbols for windows
         if: matrix.platform == 'win32'
         run: |
@@ -124,7 +139,19 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: typstyle-${{ matrix.rust-target }}
-          path: typstyle-${{ matrix.rust-target }}${{ fromJSON('["", ".exe"]')[matrix.platform == 'win32'] }}
+          path: typstyle-${{ matrix.rust-target }}${{ matrix.platform == 'win32' && '.exe' || '' }}
+      - name: Measure the packaged Linux x64 executable
+        if: inputs.report-size && matrix.rust-target == 'x86_64-unknown-linux-gnu'
+        run: |
+          bytes=$(wc -c < typstyle-x86_64-unknown-linux-gnu)
+          jq --argjson bytes "$bytes" '. + {"release-size": $bytes}' cargo-bloat.json > release-size.json
+      - name: Upload Linux x64 size report
+        if: inputs.report-size && matrix.rust-target == 'x86_64-unknown-linux-gnu'
+        uses: actions/upload-artifact@v4
+        with:
+          name: typstyle-linux-x64-size-${{ github.sha }}
+          path: release-size.json
+          if-no-files-found: error
 
   build_alpine:
     name: build (x86_64-unknown-linux-musl)

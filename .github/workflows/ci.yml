@@ -105,3 +105,5 @@ jobs:
     needs: [pre_job]
     if: needs.pre_job.outputs.should_skip != 'true'
     uses: ./.github/workflows/build-binaries.yml
+    with:
+      report-size: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}

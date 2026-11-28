@@ -77,6 +77,10 @@ cargo insta accept    # Accept all changes
 
 == Benchmarks
 
+The PR report compares the base and proposed merge. Criterion uses Cargo's
+default `bench` profile. The Linux x64 size comes from the executable built
+with the `ci` profile after CI splits out debug symbols.
+
 Using #link("https://github.com/bheisler/criterion.rs")[Criterion.rs]:
 
 ```bash

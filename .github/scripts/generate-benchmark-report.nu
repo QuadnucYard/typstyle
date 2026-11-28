@@ -6,14 +6,15 @@
 # The arguments are the sibling base/ and pr/ directories in BENCHMARK_RESULTS.
 # Their parent contains environment.txt (rustc -vV followed by lscpu output)
 # and criterion/<benchmark>/{base,pr}/ with the two named Criterion baselines.
-# Each arm contains bloat/bloat-<arm>.json from cargo-bloat --crates in JSON mode.
+# Each arm may contain release-size.json from CI, with exact packaged bytes
+# alongside the cargo-bloat code size diagnostics.
 # critcmp and diff must be on PATH; the current directory must be writable for
 # the temporary crate-size text files used by diff.
 #
 # Write benchmark-results.md beside base/ and pr/, and print the report.
 # Include the compiler version and CPU model/architecture from environment.txt;
 # the artifact retains the full compiler and CPU output for detailed diagnostics.
-# Missing bloat files retain the optional-size-data warning. Invalid data or
+# Missing reports leave the corresponding comparison unavailable. Invalid data or
 # comparison-tool failures propagate; diff exit 1 is an ordinary difference.
 
 # Render performance, binary-size, compiler, and CPU information for the PR artifact.
@@ -62,97 +63,60 @@ def generate_bench_report [
     ^critcmp --color never --target-dir $root base pr | str trim
 }
 
-# Summarize executable and text-section size changes from cargo-bloat JSON.
-# Missing files produce a warning; malformed data fails during parsing or use.
+# Compare the executable file sizes and cargo-bloat diagnostics recorded by CI.
 def generate_bloat_report [
-    base_dir: string # Contains bloat/bloat-base.json.
-    pr_dir: string # Contains bloat/bloat-pr.json.
+    base_dir: string
+    pr_dir: string
 ] {
-    let base_bloat_file = $"($base_dir)/bloat/bloat-base.json"
-    let pr_bloat_file = $"($pr_dir)/bloat/bloat-pr.json"
-
-    # Check if bloat files exist
-    if not ($base_bloat_file | path exists) or not ($pr_bloat_file | path exists) {
-        return "⚠️ Binary size data not available for comparison."
+    let base_file = $base_dir | path join release-size.json
+    let pr_file = $pr_dir | path join release-size.json
+    if not ($pr_file | path exists) {
+        return "⚠️ PR release size is unavailable."
     }
 
-    # Parse JSON files
-    let base_data = ($base_bloat_file | open)
-    let pr_data = ($pr_bloat_file | open)
-
-    # Extract binary sizes from bloat JSON
-    let base_size = $base_data."file-size"
-    let pr_size = $pr_data."file-size"
-    let base_text_size = $base_data."text-section-size"
-    let pr_text_size = $pr_data."text-section-size"
-
-    let diff = ($pr_size - $base_size)
-    let text_diff = ($pr_text_size - $base_text_size)
-
-    # Convert to human readable format
-    let base_size_human = ($base_size | into filesize)
-    let pr_size_human = ($pr_size | into filesize)
-    let base_text_human = ($base_text_size | into filesize)
-    let pr_text_human = ($pr_text_size | into filesize)
-
-    # Calculate change indicators for file size
-    let change_info = if $diff == 0 {
-        {emoji: "=", text: "no change"}
-    } else if $diff > 0 {
-        let diff_human = ($diff | into filesize)
-        let diff_percent = (($diff * 100.0) / $base_size | math round -p 2)
-        {emoji: "📈", text: $"+($diff_human) \(+($diff_percent)%\)"}
-    } else {
-        let diff_abs = ($diff * -1)
-        let diff_human = ($diff_abs | into filesize)
-        let diff_percent = (($diff_abs * 100.0) / $base_size | math round -p 2)
-        {emoji: "📉", text: $"-($diff_human) \(-($diff_percent)%\)"}
-    }
-
-    # Calculate change indicators for text section
-    let text_change_info = if $text_diff == 0 {
-        {emoji: "=", text: "no change"}
-    } else if $text_diff > 0 {
-        let diff_human = ($text_diff | into filesize)
-        let diff_percent = (($text_diff * 100.0) / $base_text_size | math round -p 2)
-        {emoji: "📈", text: $"+($diff_human) \(+($diff_percent)%\)"}
-    } else {
-        let diff_abs = ($text_diff * -1)
-        let diff_human = ($diff_abs | into filesize)
-        let diff_percent = (($diff_abs * 100.0) / $base_text_size | math round -p 2)
-        {emoji: "📉", text: $"-($diff_human) \(-($diff_percent)%\)"}
-    }
-
-    # Generate bloat details
-    let bloat_details = generate_bloat_diff $base_bloat_file $pr_bloat_file
-
-    # Generate the report
+    let base_data = if ($base_file | path exists) { open $base_file } else { {} }
+    let pr_data = open $pr_file
+    let executable = size_row "Release executable" $base_data.release-size? $pr_data.release-size
+    let text = size_row "Text section" $base_data.text-section-size? $pr_data.text-section-size
+    let bloat_details = generate_bloat_diff ($base_data.crates? | default []) $pr_data.crates
     $"
-### 📏 Binary Size Comparison
+### 📏 Binary Size Comparison \(x86_64-unknown-linux-gnu\)
 
 | Metric | Base | PR | Change |
 |--------|------|----|---------|
-| **File Size** | ($base_size_human) | ($pr_size_human) | ($change_info.emoji) ($change_info.text) |
-| **Text Section** | ($base_text_human) | ($pr_text_human) | ($text_change_info.emoji) ($text_change_info.text) |
+($executable)
+($text)
 ($bloat_details)"
+}
+
+def size_row [name: string, base: any, pr: int] {
+    if $base == null {
+        return $"| **($name)** | unavailable | ($pr) B | |"
+    }
+    let diff = $pr - $base
+    let change = if $diff == 0 {
+        "= no change"
+    } else {
+        let sign = if $diff > 0 { "+" } else { "-" }
+        let bytes = $diff | math abs | into filesize
+        let percent = ($diff * 100.0 / $base) | math abs | math round -p 2
+        $"($sign)($bytes) \(($sign)($percent)%\)"
+    }
+    $"| **($name)** | ($base) B | ($pr) B | ($change) |"
 }
 
 # Render a collapsible diff of the twenty largest crates in each size report.
 # Use temporary files in the current directory and accept diff exit codes 0/1.
 # Other exit codes fail with both output streams included in the error.
 def generate_bloat_diff [
-    base_file: string # Base cargo-bloat JSON report.
-    pr_file: string # PR cargo-bloat JSON report.
+    base: list
+    pr: list
 ] {
-    # Parse JSON files
-    let base_data = ($base_file | open)
-    let pr_data = ($pr_file | open)
-
     # Extract top 20 crates with human-readable sizes and aligned formatting
-    let base_crates = ($base_data.crates | first 20 | each { |crate|
+    let base_crates = ($base | first 20 | each { |crate|
         $"($crate.name | fill -a l -w 25) ($crate.size | into filesize)"
     })
-    let pr_crates = ($pr_data.crates | first 20 | each { |crate|
+    let pr_crates = ($pr | first 20 | each { |crate|
         $"($crate.name | fill -a l -w 25) ($crate.size | into filesize)"
     })
 
@@ -160,7 +124,9 @@ def generate_bloat_diff [
     let base_content = ($base_crates | str join "\n")
     let pr_content = ($pr_crates | str join "\n")
 
-    let diff_output = if $base_content == $pr_content {
+    let diff_output = if ($base | is-empty) {
+        $pr_content
+    } else if $base_content == $pr_content {
         $"No changes detected in crate sizes:
 
 ($base_content)"
@@ -185,9 +151,9 @@ def generate_bloat_diff [
     $"
 
 <details>
-<summary>📦 Detailed Crate Size Diff \(cargo-bloat\)</summary>
+<summary>📦 Crate Sizes \(cargo-bloat\)</summary>
 
-**Note:** Numbers above are a result of guesswork. They are not 100% correct and never will be.
+Per-crate code sizes are estimates.
 
 ```diff
 ($diff_output)

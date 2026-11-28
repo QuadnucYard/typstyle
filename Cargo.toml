@@ -89,6 +89,7 @@ opt-level = 1
 [profile.ci]
 inherits = "release"
 debug = true
+codegen-units = 1
 
 [patch.crates-io]
 # prettyless = { git = "https://github.com/typstyle-rs/prettyless", rev = "0174fe2d9b2a9d6b309e071a2226aeb51aa01a1c" }
